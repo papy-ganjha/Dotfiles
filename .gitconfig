@@ -13,7 +13,7 @@
 [sendemail]
 	smtpencryption = tls
 	smtpserver = smtp.gmail.com
-	smtpuser = pavan.sss1991@gmail.com
+	smtpuser = kenz.bensmaine@gmail.com
 	smtppass = password
 	smtpserverport = 587
 [web]
