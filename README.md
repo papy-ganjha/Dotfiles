@@ -1,6 +1,6 @@
 # Dotfiles repository
 
-This Repo Stands to get my configuration back quickly on every pc with this repo
+This repo is all my classic configuration. In the python folder you can find all to set up a project with python
 
 ## Symlink configuration:
 
@@ -9,5 +9,5 @@ This Repo Stands to get my configuration back quickly on every pc with this repo
 To configure a symlink on ubuntu you need to pass this command:
 
 ```
-ln -s path/of/the/file path/of/the/symlink/file
+ln -s path/of/the/file path/of/the/symlink/location
 ```
