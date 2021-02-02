@@ -2,6 +2,10 @@
 	name = Kenz Bensmaine
 	email = kenz.bensmaine@student-cs.fr
 	username = papy-ganja
+[user]
+	name = Kenz Bensmaine
+	email = kenz.bensmaine@gmail.com
+	username = Kenz
 [core]
 	editor = vim
 	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
@@ -53,8 +57,11 @@
 	minus-empty-line-marker-style = normal normal
 	plus-empty-line-marker-style = normal normal
 	line-numbers-right-format = "{np:^4}│ "
+[gitlab]
+	user = Kenz
+	token = token
 [github]
-	user = pksunkara
+	user = papy-ganja
 	token = token
 [gitflow "prefix"]
 	versiontag = v
