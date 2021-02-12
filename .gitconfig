@@ -1,11 +1,11 @@
 [user]
 	name = Kenz Bensmaine
 	email = kenz.bensmaine@student-cs.fr
-	username = papy-ganja
+	username = Kenz
 [user]
 	name = Kenz Bensmaine
 	email = kenz.bensmaine@gmail.com
-	username = Kenz
+	username = papy-ganja
 [core]
 	editor = vim
 	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
