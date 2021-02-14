@@ -97,6 +97,7 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+alias activenv="source venv/bin/activate"
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/home/kenz/google-cloud-sdk/path.zsh.inc' ]; then . '/home/kenz/google-cloud-sdk/path.zsh.inc'; fi
