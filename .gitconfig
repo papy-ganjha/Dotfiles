@@ -1,4 +1,8 @@
 [user]
+	name = kenz-datakalab
+	email = kenzb@datakalab.com
+	username = Kenz
+[user]
 	name = Kenz
 	email = kenz.bensmaine@student-cs.fr
 	username = Kenz
@@ -52,7 +56,7 @@
 	plus-empty-line-marker-style = normal normal
 	line-numbers-right-format = "{np:^4}│ "
 [gitlab]
-	user = Kenz
+	user = kenz-datakalab 
 	token = token
 [github]
 	user = papy-ganja
