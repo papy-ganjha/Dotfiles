@@ -11,11 +11,11 @@
 	email = kenz.bensmaine@gmail.com
 	username = papy-ganja
 [core]
-	editor = vim
+	editor = nvim
 	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
 	pager = delta
 [web]
-	browser = firefox
+	browser = brave
 [push]
 	default = matching
 [color]
