@@ -1,7 +1,6 @@
-# nvidia drivers
+# nvidia drivers and cuda setup
 sudo apt update
-sudo add-apt-repository ppa:graphics-drivers/ppa
-sudo apt install -y nvidia-driver-525
+bash ./cuda-setup-ubuntu.sh
 
 # Install some utilities
 sudo apt install -y neovim vim zsh curl
@@ -10,7 +9,7 @@ sudo apt install -y neovim vim zsh curl
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 # Download tools
-cd Downloads
+cd ~/Downloads
 
 ## VsCode
 wget https://az764295.vo.msecnd.net/stable/97dec172d3256f8ca4bfb2143f3f76b503ca0534/code_1.74.3-1673284829_amd64.deb
@@ -32,3 +31,12 @@ echo \
 # Install docker engine
 sudo apt update 
 sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+##### Install Brave
+# Set up official repo
+sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"|sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+# Install browser
+sudo apt update
+sudo apt install brave-browser
+
