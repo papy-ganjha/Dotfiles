@@ -1,0 +1,21 @@
+require("kenzb.plugins-setup")
+
+require("kenzb.core.options")
+require("kenzb.core.keymaps")
+require("kenzb.core.colorscheme")
+
+-- plugins
+require("kenzb.plugins.comment")
+require("kenzb.plugins.nvim-tree")
+require("kenzb.plugins.lualine")
+require("kenzb.plugins.telescope")
+require("kenzb.plugins.nvim-cmp")
+require("kenzb.plugins.lsp.mason")
+require("kenzb.plugins.lsp.lspsaga")
+require("kenzb.plugins.lsp.lspconfig")
+require("kenzb.plugins.lsp.null-ls")
+require("kenzb.plugins.autopairs")
+require("kenzb.plugins.treesitter")
+require("kenzb.plugins.gitsigns")
+require("kenzb.plugins.distant")
+-- require("kenzb.")
