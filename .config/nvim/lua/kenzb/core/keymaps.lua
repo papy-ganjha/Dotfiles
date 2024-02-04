@@ -1,7 +1,5 @@
 vim.g.mapleader = " " -- Master key is space now!
 
-
-
 local keymap = vim.keymap -- for conciseness
 
 -- general keymaps
@@ -10,7 +8,7 @@ local keymap = vim.keymap -- for conciseness
 -- The second arg is the combination of keys to press to trigger the last arg action
 
 keymap.set("i", "jk", "<ESC>")
-keymap.set("n", "<leader>nh", ":nohl<CR>")
+keymap.set("n", "<leader>nh", ":nohl<CR>") -- no highlights
 -- keymap.set("n", "x", "_x") -- Avoids to copy the character in the buffer when deleting it
 
 -- Increment and decrement numbers
@@ -32,7 +30,7 @@ keymap.set("n", "<leader>tp", ":tabp<CR>") -- previous tab
 -- plugin keymaps
 keymap.set("n", "<leader>sm", ":MaximizerToggle<CR>")
 
--- nvim-tree 
+-- nvim-tree
 keymap.set("n", "<leader>e", ":NvimTreeToggle<CR>")
 
 -- telescope bindings
@@ -41,3 +39,6 @@ keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>")
+
+-- LazyGit binding
+keymap.set("n", "<leader>gg", ":LazyGit<CR>")
