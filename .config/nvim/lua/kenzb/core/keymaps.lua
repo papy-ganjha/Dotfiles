@@ -11,6 +11,9 @@ keymap.set("i", "jk", "<ESC>")
 keymap.set("n", "<leader>nh", ":nohl<CR>") -- no highlights
 -- keymap.set("n", "x", "_x") -- Avoids to copy the character in the buffer when deleting it
 
+-- Save easily file
+keymap.set("n", "<leader>w", ":w<CR>")
+
 -- Increment and decrement numbers
 keymap.set("n", "<leader>+", "<C-a>")
 keymap.set("n", "<leader>-", "<C-x>")
