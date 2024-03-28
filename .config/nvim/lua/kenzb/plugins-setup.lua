@@ -133,6 +133,20 @@ return packer.startup(function(use)
 		},
 	})
 
+	--Docstring management
+	use({
+		"kkoomen/vim-doge",
+		run = ":call doge#install()",
+	})
+
+	use({
+		"ThePrimeagen/refactoring.nvim",
+		requires = {
+			{ "nvim-lua/plenary.nvim" },
+			{ "nvim-treesitter/nvim-treesitter" },
+		},
+	})
+
 	if packer_bootstrap then
 		require("packer").sync()
 	end
