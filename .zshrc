@@ -144,3 +144,8 @@ unset __conda_setup
 
 # Configure VSCODE to be opened with command line
 export PATH="$PATH:/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin"
+
+#### Added by green-restore install-tools
+autoload -Uz compinit && compinit
+####
+[[ -s /Users/kenz/.rsvm/rsvm.sh ]] && . /Users/kenz/.rsvm/rsvm.sh # This loads RSVM

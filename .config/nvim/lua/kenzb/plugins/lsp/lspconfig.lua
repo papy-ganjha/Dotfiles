@@ -50,7 +50,7 @@ for type, icon in pairs(signs) do
 	vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 end
 
--- configure html server
+-- configure python server
 lspconfig["pyright"].setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
@@ -76,3 +76,19 @@ lspconfig["lua_ls"].setup({
 		},
 	},
 })
+
+-- -- local lspconfig = require("lspconfig")
+-- local pylance = require("pylance")
+--
+-- pylance.setup()
+-- lspconfig.pylance.setup({
+-- 	-- https://github.com/microsoft/pylance-release#settings-and-customization
+-- 	settings = {
+-- 		python = {
+-- 			analysis = {
+-- 				indexing = true,
+-- 				typeCheckingMode = "basic",
+-- 			},
+-- 		},
+-- 	},
+-- })
