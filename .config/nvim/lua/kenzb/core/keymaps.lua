@@ -58,3 +58,6 @@ vim.keymap.set("n", "<leader>rI", ":Refactor inline_func")
 
 vim.keymap.set("n", "<leader>rb", ":Refactor extract_block")
 vim.keymap.set("n", "<leader>rbf", ":Refactor extract_block_to_file")
+
+-- Documentation generation
+vim.keymap.set("n", "<leader>dg", ":DogeGenerate google<CR>")
