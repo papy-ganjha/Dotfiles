@@ -6,6 +6,8 @@ local keymap = vim.keymap -- for conciseness
 -- Quick note on how it works ...
 -- The first argument is the VIM mode as: "i" for insert, "v" for visual, etc...
 -- The second arg is the combination of keys to press to trigger the last arg action
+--
+keymap.set("n", "<leader>w", ":w<CR>")
 
 keymap.set("i", "jk", "<ESC>")
 keymap.set("n", "<leader>nh", ":nohl<CR>") -- no highlights
