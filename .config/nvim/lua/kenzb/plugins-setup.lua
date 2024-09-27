@@ -37,7 +37,9 @@ return packer.startup(function(use)
 	-- Selector
 	use("zaldih/themery.nvim")
 	-- Actual themes installed
+    -- To find more themes it is possible on this website: https://dotfyle.com/neovim/colorscheme/trending
     use({ "catppuccin/nvim", as = "catppuccin" })
+    use("folke/tokyonight.nvim")
 	use("ellisonleao/gruvbox.nvim")
 
 	use("christoomey/vim-tmux-navigator") -- tmux & split window navigation
