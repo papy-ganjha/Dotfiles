@@ -37,6 +37,7 @@ return packer.startup(function(use)
 	-- Selector
 	use("zaldih/themery.nvim")
 	-- Actual themes installed
+    use({ "catppuccin/nvim", as = "catppuccin" })
 	use("ellisonleao/gruvbox.nvim")
 
 	use("christoomey/vim-tmux-navigator") -- tmux & split window navigation
