@@ -147,3 +147,6 @@ fi
 autoload -Uz compinit && compinit
 ####
 [[ -s /Users/kenz/.rsvm/rsvm.sh ]] && . /Users/kenz/.rsvm/rsvm.sh # This loads RSVM
+
+### FZF on mac 
+set rtp+=/opt/homebrew/opt/fzf
