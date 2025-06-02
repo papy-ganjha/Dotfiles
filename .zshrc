@@ -149,3 +149,6 @@ export PATH="$PATH:/Applications/Visual Studio Code - Insiders.app/Contents/Reso
 autoload -Uz compinit && compinit
 ####
 [[ -s /Users/kenz/.rsvm/rsvm.sh ]] && . /Users/kenz/.rsvm/rsvm.sh # This loads RSVM
+
+### FZF on mac 
+set rtp+=/opt/homebrew/opt/fzf
