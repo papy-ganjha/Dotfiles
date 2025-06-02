@@ -10,6 +10,9 @@ opt.shiftwidth = 4
 opt.expandtab = true
 opt.autoindent = true
 
+-- Set minimal number of lines to keep above and below the cursor (e.g., 5 lines)
+vim.opt.scrolloff = 10
+
 -- line wrapping
 opt.wrap = false
 
