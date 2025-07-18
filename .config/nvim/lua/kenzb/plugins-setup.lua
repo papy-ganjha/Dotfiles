@@ -33,6 +33,33 @@ return packer.startup(function(use)
 
 	use("nvim-lua/plenary.nvim") -- lua functions that many plugins use
 
+    use({
+      "rmagatti/goto-preview",
+        config = function()
+        require('goto-preview').setup({
+          width = 120, -- Width of the floating window
+          height = 25, -- Height of the floating window
+          border = {"↖", "─" ,"┐", "│", "┘", "─", "└", "│"}, -- Border characters of the floating window
+          default_mappings = false, -- Bind default mappings
+          debug = false, -- Print debug information
+          opacity = nil, -- 0-100 opacity level of the floating window where 100 is fully transparent.
+          resizing_mappings = false, -- Binds arrow keys to resizing the floating window.
+          post_open_hook = function(buf, win)
+            -- Add custom keymaps for the preview window
+            vim.keymap.set("n", "q", function()
+              vim.api.nvim_win_close(win, true)
+            end, { buffer = buf, silent = true })
+            
+            vim.keymap.set("n", "<Esc>", function()
+              vim.api.nvim_win_close(win, true)
+            end, { buffer = buf, silent = true })
+          end,
+          -- You can also use "single" if you don't like the default border
+          -- border = "single",
+        })
+        end
+    })
+
 	-- Themes
 	-- Selector
 	use("zaldih/themery.nvim")
