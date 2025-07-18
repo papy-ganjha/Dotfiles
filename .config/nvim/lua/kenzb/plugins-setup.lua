@@ -47,11 +47,7 @@ return packer.startup(function(use)
           post_open_hook = function(buf, win)
             -- Add custom keymaps for the preview window
             vim.keymap.set("n", "q", function()
-              vim.api.nvim_win_close(win, true)
-            end, { buffer = buf, silent = true })
-            
-            vim.keymap.set("n", "<Esc>", function()
-              vim.api.nvim_win_close(win, true)
+                vim.cmd("q")
             end, { buffer = buf, silent = true })
           end,
           -- You can also use "single" if you don't like the default border
