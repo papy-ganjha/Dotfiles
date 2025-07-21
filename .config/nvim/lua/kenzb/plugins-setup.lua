@@ -33,6 +33,7 @@ return packer.startup(function(use)
 
 	use("nvim-lua/plenary.nvim") -- lua functions that many plugins use
 
+    -- window previews
     use({
       "rmagatti/goto-preview",
         config = function()
@@ -145,15 +146,6 @@ return packer.startup(function(use)
 
 	-- git integration
 	use("lewis6991/gitsigns.nvim") -- show line modifications on left hand side
-
-	-- Remote edit nvim
-	use({
-		"chipsenkbeil/distant.nvim",
-		branch = "v0.3",
-		config = function()
-			require("distant"):setup()
-		end,
-	})
 
 	use({
 		"kdheepak/lazygit.nvim",
