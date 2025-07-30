@@ -16,6 +16,12 @@ if not mason_null_ls_status then
   return
 end
 
+local lspconfig_status, lspconfig = pcall(require, "lspconfig")
+if not lspconfig_status then
+	return
+end
+
+
 -- enable mason
 mason.setup()
 
@@ -26,6 +32,20 @@ mason_lspconfig.setup({
   },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
+  automatic_setup = false, -- prevents duplication of pyright
+  automatic_enable = {
+    exclude = {
+      "pyright",
+    }
+  }
+})
+
+lspconfig.pyright.setup({
+  settings = {
+    python = {
+      pythonPath = vim.fn.exepath("python"),
+    }
+  }
 })
 
 mason_null_ls.setup({
