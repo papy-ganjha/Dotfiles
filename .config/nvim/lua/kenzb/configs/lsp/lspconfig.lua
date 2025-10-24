@@ -11,6 +11,9 @@ local opts = {}
 -- Helper function to create a floating window handler for LSP functions
 local function make_floating_handler(method)
   return function()
+    -- Save the window we're calling from
+    local source_win = vim.api.nvim_get_current_win()
+
     local params = vim.lsp.util.make_position_params()
 
     vim.lsp.buf_request(0, method, params, function(err, result, ctx, config)
@@ -69,8 +72,14 @@ local function make_floating_handler(method)
         vim.cmd("normal! zz")
       end
 
-      -- Add keybinding to close the floating window with 'q'
-      vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', ':q<CR>', { noremap = true, silent = true })
+      -- Add keybinding to close the floating window with 'q' and return to source window
+      vim.keymap.set('n', 'q', function()
+        vim.api.nvim_win_close(0, true)
+        -- Return focus to the source window if it's still valid
+        if vim.api.nvim_win_is_valid(source_win) then
+          vim.api.nvim_set_current_win(source_win)
+        end
+      end, { buffer = bufnr, noremap = true, silent = true })
     end)
   end
 end

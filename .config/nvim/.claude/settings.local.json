@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/kenz/Documents/Dotfiles/**)",
+      "Read(//Users/kenz/.local/share/nvim/site/pack/packer/start/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
