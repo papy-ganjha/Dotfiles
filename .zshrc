@@ -150,3 +150,74 @@ autoload -Uz compinit && compinit
 
 ### FZF on mac 
 set rtp+=/opt/homebrew/opt/fzf
+
+# Kube aliases
+alias kget='kubectl get pods,jobs,rs,statefulset'
+alias kd='kubectl describe'
+alias kdq='kd quota'
+alias klog='kubectl logs'
+alias kdel='kubectl delete'
+
+alias kctx='f() { kubectl config set-context --current --namespace=$1 };f'
+
+alias ki1a='kcli init -c us-west-1a'
+
+alias ki-mlo='ki1a && kctx mlo-data-autovqa && kget'
+
+function kube-ssh() {
+    if [ -z $1 ] ; then
+        echo "Defaulting to the production app instance type (''). Pass 'dev' or 'test' for those envs."
+        instance_type=""
+    else
+        instance_type="-$1"
+    fi
+
+        # If DEBUG is set when you run `kubectl exec`, you will get
+        # very noisy data logs for network traffic.
+        if [ $DEBUG ] ; then
+                OLD_DEBUG=$DEBUG
+                unset DEBUG
+        fi
+
+        pod_name=$(kubectl get pods -l app=ebar$instance_type-main --output jsonpath='{.items[*].metadata.name}')
+        kubectl exec $pod_name -it -- /bin/bash
+
+        if [ $OLD_DEBUG ] ; then
+                DEBUG=$OLD_DEBUG
+                unset OLD_DEBUG
+        fi
+}
+
+function kube-update-setting-keys() {
+    if [ -z $1 ] ; then
+        echo "Must supply a SETTING_KEYS file as first argument"
+        return 1
+    fi
+
+    #if [ $(basename $1) != "SETTING_KEYS" ] ; then
+    #    echo "Must supply a SETTING_KEYS file as first argument"
+    #    return 1
+    #fi
+
+    # Checks for valid json without printing the whole thing
+    cat $1 | jq empty
+    if [ $? -ne 0 ] ; then
+        echo "${1} must be valid json"
+        return 1
+    fi
+
+    secret_name=$2
+
+    if [ -z $2 ] ; then
+       secret_name="setting-keys";
+    fi
+
+    # kubectl will not let us create a secret if
+    # it already exists, so we do a "dry run" and send
+    # it's output to `kubectl apply -f` to force-apply
+    # the change
+    set -x
+    kubectl create secret generic ${secret_name} \
+        --save-config --dry-run=client --from-file $1 -o yaml \
+        | kubectl apply -f -
+}
