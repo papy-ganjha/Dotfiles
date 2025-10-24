@@ -8,6 +8,10 @@
 
 set -e  # Exit on error
 
+# Backup directory with timestamp
+BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
+BACKUP_CREATED=false
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -30,6 +34,95 @@ print_error() {
 
 print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+# Create backup directory
+create_backup_dir() {
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        mkdir -p "$BACKUP_DIR"
+        BACKUP_CREATED=true
+        print_info "Created backup directory: $BACKUP_DIR"
+    fi
+}
+
+# Backup a file or directory
+backup_item() {
+    local item="$1"
+    local item_name=$(basename "$item")
+
+    if [[ -e "$item" && ! -L "$item" ]]; then
+        create_backup_dir
+        print_info "Backing up: $item"
+        cp -r "$item" "$BACKUP_DIR/$item_name"
+        return 0
+    fi
+    return 1
+}
+
+# Create restore script
+create_restore_script() {
+    if [[ "$BACKUP_CREATED" == true ]]; then
+        local restore_script="$BACKUP_DIR/restore.sh"
+
+        cat > "$restore_script" <<'EOF'
+#!/usr/bin/env bash
+# Restore script for dotfiles backup
+
+set -e
+
+BACKUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "This will restore your backed up configuration files."
+echo "Backup location: $BACKUP_DIR"
+echo ""
+echo "WARNING: This will remove current symlinks and restore original files."
+read -p "Are you sure you want to restore? (yes/no): " -r
+echo
+
+if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+    echo "Restore cancelled."
+    exit 0
+fi
+
+# Restore each backed up file
+for item in "$BACKUP_DIR"/*; do
+    if [[ -f "$item" || -d "$item" ]]; then
+        item_name=$(basename "$item")
+
+        # Skip the restore script itself
+        if [[ "$item_name" == "restore.sh" ]]; then
+            continue
+        fi
+
+        # Determine target location
+        if [[ "$item_name" == "nvim" ]]; then
+            target="$HOME/.config/nvim"
+        elif [[ "$item_name" == ".tmux.conf" ]]; then
+            target="$HOME/.config/.tmux.conf"
+        else
+            target="$HOME/$item_name"
+        fi
+
+        echo "Restoring: $target"
+
+        # Remove existing file/symlink
+        if [[ -e "$target" || -L "$target" ]]; then
+            rm -rf "$target"
+        fi
+
+        # Restore original
+        cp -r "$item" "$target"
+    fi
+done
+
+echo ""
+echo "Restore completed successfully!"
+echo "You may want to restart your terminal."
+EOF
+
+        chmod +x "$restore_script"
+        print_success "Created restore script: $restore_script"
+    fi
 }
 
 # Detect OS
@@ -123,24 +216,53 @@ setup_dotfiles() {
     print_success "Dotfiles repository ready at $DOTFILES_DIR"
 }
 
+# Backup existing configurations
+backup_configs() {
+    print_info "Backing up existing configurations..."
+
+    local configs_to_backup=(
+        "$HOME/.config/nvim"
+        "$HOME/.config/.tmux.conf"
+        "$HOME/.zshrc"
+        "$HOME/.gitconfig"
+        "$HOME/.p10k.zsh"
+    )
+
+    local backed_up_count=0
+
+    for config in "${configs_to_backup[@]}"; do
+        if backup_item "$config"; then
+            ((backed_up_count++))
+        fi
+    done
+
+    if [[ $backed_up_count -gt 0 ]]; then
+        print_success "Backed up $backed_up_count configuration file(s)"
+        create_restore_script
+    else
+        print_info "No existing configurations to backup"
+    fi
+}
+
 # Symlink configurations using stow
 symlink_configs() {
     print_info "Symlinking configurations with stow..."
     cd "$DOTFILES_DIR"
 
-    # Backup existing configs if they exist and aren't symlinks
-    backup_if_exists() {
-        if [[ -e "$1" && ! -L "$1" ]]; then
-            print_warning "Backing up existing $1 to $1.backup"
-            mv "$1" "$1.backup"
-        fi
-    }
+    # Remove existing files/dirs that were backed up to allow stow to work
+    local items_to_remove=(
+        "$HOME/.config/nvim"
+        "$HOME/.config/.tmux.conf"
+        "$HOME/.zshrc"
+        "$HOME/.gitconfig"
+        "$HOME/.p10k.zsh"
+    )
 
-    backup_if_exists "$HOME/.config/nvim"
-    backup_if_exists "$HOME/.config/.tmux.conf"
-    backup_if_exists "$HOME/.zshrc"
-    backup_if_exists "$HOME/.gitconfig"
-    backup_if_exists "$HOME/.p10k.zsh"
+    for item in "${items_to_remove[@]}"; do
+        if [[ -e "$item" && ! -L "$item" ]]; then
+            rm -rf "$item"
+        fi
+    done
 
     # Use stow to create symlinks
     stow . --adopt -t "$HOME" 2>/dev/null || {
@@ -185,6 +307,7 @@ main() {
     detect_os
     install_prerequisites
     setup_dotfiles
+    backup_configs
     symlink_configs
     install_tpm
     setup_neovim
@@ -194,6 +317,14 @@ main() {
     print_success "Installation complete!"
     echo "======================================"
     echo ""
+
+    if [[ "$BACKUP_CREATED" == true ]]; then
+        print_info "Backup Information:"
+        echo "  - Backup location: $BACKUP_DIR"
+        echo "  - To restore backups, run: bash $BACKUP_DIR/restore.sh"
+        echo ""
+    fi
+
     print_info "Next steps:"
     echo "  1. Restart your terminal or run: source ~/.zshrc"
     echo "  2. Launch tmux and press 'prefix + I' (Ctrl+Space + Shift+i) to install tmux plugins"
