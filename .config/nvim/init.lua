@@ -35,7 +35,10 @@ vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
     -- Only open if no file was specified
     if vim.fn.argc() == 0 then
-      vim.cmd("NvimTreeOpen")
+      -- Small delay to ensure nvim-tree is fully loaded
+      vim.defer_fn(function()
+        vim.cmd("NvimTreeOpen")
+      end, 10)
     end
   end,
 })
