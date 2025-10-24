@@ -45,7 +45,7 @@ create_backup_dir() {
     fi
 }
 
-# Backup a file or directory
+# Backup a file or directory and remove it
 backup_item() {
     local item="$1"
     local item_name=$(basename "$item")
@@ -53,7 +53,22 @@ backup_item() {
     if [[ -e "$item" && ! -L "$item" ]]; then
         create_backup_dir
         print_info "Backing up: $item"
-        cp -r "$item" "$BACKUP_DIR/$item_name"
+        if cp -r "$item" "$BACKUP_DIR/$item_name" 2>/dev/null; then
+            print_info "  ✓ Backup successful"
+            # Immediately remove after successful backup
+            if rm -rf "$item" 2>/dev/null; then
+                print_info "  ✓ Original removed"
+            else
+                print_warning "  ⚠ Could not remove original, will try again later"
+            fi
+            return 0
+        else
+            print_error "  ✗ Backup failed for $item"
+            return 1
+        fi
+    elif [[ -L "$item" ]]; then
+        print_info "Removing symlink: $item"
+        rm -f "$item" 2>/dev/null
         return 0
     fi
     return 1
@@ -223,9 +238,11 @@ backup_configs() {
     local configs_to_backup=(
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
+        "$HOME/.tmux.conf"
         "$HOME/.zshrc"
         "$HOME/.gitconfig"
         "$HOME/.p10k.zsh"
+        "$HOME/.luarc.json"
     )
 
     local backed_up_count=0
@@ -233,6 +250,16 @@ backup_configs() {
     for config in "${configs_to_backup[@]}"; do
         if backup_item "$config"; then
             ((backed_up_count++))
+        fi
+    done
+
+    # Also backup any .backup files from previous installations
+    for config in "${configs_to_backup[@]}"; do
+        if [[ -e "$config.backup" ]]; then
+            print_info "Found old backup file: $config.backup"
+            if backup_item "$config.backup"; then
+                ((backed_up_count++))
+            fi
         fi
     done
 
@@ -253,24 +280,73 @@ symlink_configs() {
     local items_to_remove=(
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
+        "$HOME/.tmux.conf"
         "$HOME/.zshrc"
         "$HOME/.gitconfig"
         "$HOME/.p10k.zsh"
+        "$HOME/.luarc.json"
     )
 
+    print_info "Removing backed up files to prepare for symlinking..."
+
+    # Temporarily disable exit on error for removal
+    set +e
+
     for item in "${items_to_remove[@]}"; do
-        if [[ -e "$item" && ! -L "$item" ]]; then
-            rm -rf "$item"
+        if [[ -L "$item" ]]; then
+            print_info "  Removing existing symlink: $item"
+            rm -f "$item"
+        elif [[ -e "$item" ]]; then
+            print_info "  Removing: $item"
+            if rm -rf "$item" 2>/dev/null; then
+                print_info "    ✓ Successfully removed"
+            else
+                print_error "    ✗ Failed to remove $item"
+            fi
+        fi
+
+        # Also remove any .backup files
+        if [[ -e "$item.backup" ]]; then
+            print_info "  Removing old backup: $item.backup"
+            rm -rf "$item.backup" 2>/dev/null
         fi
     done
 
-    # Use stow to create symlinks
-    stow . --adopt -t "$HOME" 2>/dev/null || {
-        print_warning "Some files may already exist. Trying to restow..."
-        stow --restow . -t "$HOME"
-    }
+    # Re-enable exit on error
+    set -e
 
-    print_success "Configurations symlinked"
+    # Verify files are removed
+    print_info "Verifying removal..."
+    local conflicts=()
+    for item in "${items_to_remove[@]}"; do
+        if [[ -e "$item" ]]; then
+            conflicts+=("$item")
+            print_warning "  ⚠ Still exists: $item"
+        fi
+    done
+
+    if [[ ${#conflicts[@]} -gt 0 ]]; then
+        print_error "Failed to remove the following files:"
+        for conflict in "${conflicts[@]}"; do
+            echo "  - $conflict"
+        done
+        print_info ""
+        print_info "These files have been backed up to: $BACKUP_DIR"
+        print_info "To proceed, manually remove these files or use: rm -rf [file]"
+        exit 1
+    fi
+
+    print_success "All files successfully removed"
+
+    # Use stow to create symlinks
+    print_info "Running stow to create symlinks..."
+    if stow . -t "$HOME" -v 2>&1; then
+        print_success "Configurations symlinked successfully"
+    else
+        print_error "Stow failed. This shouldn't happen as all conflicts were removed."
+        print_info "You can try manually: cd $DOTFILES_DIR && stow . -t $HOME"
+        exit 1
+    fi
 }
 
 # Install TPM (Tmux Plugin Manager)
