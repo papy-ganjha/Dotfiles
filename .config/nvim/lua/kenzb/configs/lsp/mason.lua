@@ -42,6 +42,28 @@ lspconfig.pyright = {
   settings = {
     python = {
       pythonPath = vim.fn.exepath("python"),
+      analysis = {
+        -- Enable auto-import completions for symbols not yet imported
+        autoImportCompletions = true,
+        -- Enable background indexing of the entire workspace
+        indexing = true,
+        -- Analyze the entire workspace, not just open files
+        diagnosticMode = "workspace",
+        -- Enable auto-search for Python paths
+        autoSearchPaths = true,
+        -- Use library code for completions
+        useLibraryCodeForTypes = true,
+        -- Configure how deeply to index packages
+        packageIndexDepths = {
+          {
+            name = "",  -- empty string means workspace root
+            depth = 10, -- index up to 10 levels deep
+            includeAllSymbols = true,
+          },
+        },
+        -- Type checking mode
+        typeCheckingMode = "basic",
+      }
     }
   },
   root_dir = function(bufnr, on_dir)
