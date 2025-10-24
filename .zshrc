@@ -151,16 +151,7 @@ autoload -Uz compinit && compinit
 ### FZF on mac 
 set rtp+=/opt/homebrew/opt/fzf
 
-### Nice coreflow autocomplete commands with @
-_coretorch() {
-    if [[ ${words[CURRENT]} == @* ]]; then
-        compset -P '@'
-    fi
-    # Only complete .yml files and directories
-    _files -g "*.{cfg,yaml,yml}" -/
-}
-
-
+# Kube aliases
 alias kget='kubectl get pods,jobs,rs,statefulset'
 alias kd='kubectl describe'
 alias kdq='kd quota'
