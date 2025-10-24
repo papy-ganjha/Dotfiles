@@ -9,9 +9,10 @@ treesitter.setup({
 	-- enable syntax highlighting
 	highlight = {
 		enable = true,
+        disable = {"dockerfile"}
 	},
 	-- enable indentation
-	indent = { enable = true },
+	indent = { enable = true, disable = {"dockerfile"}},
 	-- enable autotagging (w/ nvim-ts-autotag plugin)
 	autotag = { enable = true },
 	-- ensure these language parsers are installed
@@ -24,7 +25,6 @@ treesitter.setup({
 		"bash",
 		"lua",
 		"vim",
-		"dockerfile",
 		"gitignore",
 	},
 	-- auto install above language parsers
