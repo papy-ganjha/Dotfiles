@@ -1,5 +1,8 @@
 **/.git
 
 # Neovim
-.config/nvim/lazy-lock.json
 .config/nvim/plugin/packer_compiled.lua
+.config/nvim/.claude/
+
+# Claude Code
+.claude/
