@@ -4,20 +4,82 @@ if not cmp_nvim_lsp_status then
 	return
 end
 
-local goto_status, goto_pckg = pcall(require, "goto-preview")
-if not goto_status then
-    return
-end
-
 local keymap = vim.keymap -- for conciseness
 
 local opts = {}
 
-keymap.set("n", "gf", goto_pckg.goto_preview_references, opts)
-keymap.set("n", "gD", vim.lsp.buf.declaration, opts) -- got to declaration
-keymap.set("n", "gd", goto_pckg.goto_preview_definition, opts)
-keymap.set("n", "gi", goto_pckg.goto_preview_implementation, opts) -- go to implementation
-keymap.set("n", "gt", goto_pckg.goto_preview_type_definition, opts)
+-- Helper function to create a floating window handler for LSP functions
+local function make_floating_handler(method)
+  return function()
+    local params = vim.lsp.util.make_position_params()
+
+    vim.lsp.buf_request(0, method, params, function(err, result, ctx, config)
+      if err then
+        vim.notify("Error: " .. tostring(err), vim.log.levels.ERROR)
+        return
+      end
+
+      if not result or vim.tbl_isempty(result) then
+        vim.notify("No " .. method .. " found", vim.log.levels.WARN)
+        return
+      end
+
+      -- Handle both single result and array of results
+      local location = result
+      if vim.tbl_islist(result) then
+        location = result[1]
+      end
+
+      -- Extract the target URI and range
+      local uri = location.uri or location.targetUri
+      local range = location.range or location.targetRange
+
+      -- Open the file in a new buffer
+      local bufnr = vim.uri_to_bufnr(uri)
+      vim.fn.bufload(bufnr)
+
+      -- Calculate floating window size (60% of editor size)
+      local width = math.floor(vim.o.columns * 0.6)
+      local height = math.floor(vim.o.lines * 0.6)
+
+      -- Calculate position to center the window
+      local row = math.floor((vim.o.lines - height) / 2)
+      local col = math.floor((vim.o.columns - width) / 2)
+
+      -- Create the floating window
+      local win = vim.api.nvim_open_win(bufnr, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+        style = "minimal",
+        border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+      })
+
+      -- Set window-local options
+      vim.api.nvim_win_set_option(win, 'winblend', 0)
+
+      -- Jump to the correct position in the buffer
+      if range then
+        local line = range.start.line + 1
+        local character = range.start.character
+        vim.api.nvim_win_set_cursor(win, {line, character})
+        -- Center the view on the cursor
+        vim.cmd("normal! zz")
+      end
+
+      -- Add keybinding to close the floating window with 'q'
+      vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', ':q<CR>', { noremap = true, silent = true })
+    end)
+  end
+end
+
+keymap.set("n", "gf", vim.lsp.buf.references, opts) -- show references
+keymap.set("n", "gD", vim.lsp.buf.declaration, opts) -- go to declaration
+keymap.set("n", "gd", make_floating_handler("textDocument/definition"), opts) -- go to definition in floating window
+keymap.set("n", "gi", make_floating_handler("textDocument/implementation"), opts) -- go to implementation in floating window
+keymap.set("n", "gt", make_floating_handler("textDocument/typeDefinition"), opts) -- go to type definition in floating window
 keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
 -- keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", opts) -- see available code actions
 keymap.set("n", "<leader>rn", vim.lsp.buf.rename , opts) -- smart rename

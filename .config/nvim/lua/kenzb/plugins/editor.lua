@@ -98,28 +98,6 @@ return {
     },
   },
 
-  -- Window previews (goto-preview)
-  {
-    "rmagatti/goto-preview",
-    event = { "BufReadPost", "BufNewFile" },
-    config = function()
-      require("goto-preview").setup({
-        width = 120,
-        height = 25,
-        border = { "↖", "─", "┐", "│", "┘", "─", "└", "│" },
-        default_mappings = false,
-        debug = false,
-        opacity = nil,
-        resizing_mappings = false,
-        post_open_hook = function(buf, win)
-          vim.keymap.set("n", "q", function()
-            vim.cmd("q")
-          end, { buffer = buf, silent = true })
-        end,
-      })
-    end,
-  },
-
   -- Docstring generation
   {
     "kkoomen/vim-doge",

@@ -22,13 +22,13 @@ nvimtree.setup({
 			},
 		},
 	},
-	-- disable window_picker for
-	-- explorer to work well with
-	-- window splits
+	-- enable window_picker to allow
+	-- selecting target window when
+	-- multiple windows are open
 	actions = {
 		open_file = {
 			window_picker = {
-				enable = false,
+				enable = true,
 			},
 		},
 	},
