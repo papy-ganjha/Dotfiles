@@ -47,9 +47,6 @@
 	minus-empty-line-marker-style = normal normal
 	plus-empty-line-marker-style = normal normal
 	line-numbers-right-format = "{np:^4}│ "
-[gitlab]
-	user = kenz-datakalab 
-	token = token
 [github]
 	user = papy-ganja
 	token = token
