@@ -5,8 +5,6 @@ return {
     event = { "BufReadPost", "BufNewFile" },
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
     },
     config = function()
       require("kenzb.configs.lsp.lspconfig")
@@ -15,20 +13,21 @@ return {
 
   -- Mason: LSP server manager
   {
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
     cmd = "Mason",
     build = ":MasonUpdate",
-    config = function()
-      require("kenzb.configs.lsp.mason")
-    end,
   },
 
   -- Mason LSP config
   {
-    "williamboman/mason-lspconfig.nvim",
+    "mason-org/mason-lspconfig.nvim",
     dependencies = {
-      "williamboman/mason.nvim",
+      "mason-org/mason.nvim",
+      "neovim/nvim-lspconfig",
     },
+    config = function()
+      require("kenzb.configs.lsp.mason")
+    end,
   },
 
   -- Mason null-ls bridge

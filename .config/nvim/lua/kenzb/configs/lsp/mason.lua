@@ -16,13 +16,6 @@ if not mason_null_ls_status then
   return
 end
 
-local lspconfig_status, lspconfig = pcall(require, "lspconfig")
-if not lspconfig_status then
-	return
-end
-
--- local lspconfig = vim.lsp.config
-
 -- enable mason
 mason.setup()
 
@@ -33,22 +26,28 @@ mason_lspconfig.setup({
   },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
-  automatic_setup = true, -- prevents duplication of pyright
-  automatic_enable = {
-    exclude = {
-      "pyright",
-    }
-  }
 })
 
--- vim.lsp.config("pyright", {})
-lspconfig.pyright.setup({
+-- Use the new vim.lsp.config API instead of lspconfig
+local lspconfig = vim.lsp.config
+
+-- Get capabilities from cmp-nvim-lsp
+local cmp_nvim_lsp_status, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+local capabilities = cmp_nvim_lsp_status and cmp_nvim_lsp.default_capabilities() or vim.lsp.protocol.make_client_capabilities()
+
+-- Configure pyright LSP server
+lspconfig.pyright = {
+  filetypes = { "python" },
+  capabilities = capabilities,
   settings = {
     python = {
       pythonPath = vim.fn.exepath("python"),
     }
-  }
-})
+  },
+  root_dir = function(bufnr, on_dir)
+    on_dir(vim.fs.root(bufnr, { ".git", "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile" }))
+  end,
+}
 
 mason_null_ls.setup({
   -- list of formatters & linters for mason to install
