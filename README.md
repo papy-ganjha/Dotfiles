@@ -4,20 +4,34 @@ My personal dotfiles for Neovim, Tmux, Zsh, and Git configuration.
 
 ## Quick Install
 
-Install everything with one command:
+**After merging to main**, install everything with one command:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/papy-ganjha/Dotfiles/main/install.sh)
 ```
 
-This will automatically:
-- Detect your OS (macOS or Linux)
-- Install prerequisites (stow, neovim, tmux, git, curl)
-- Install additional tools (ripgrep, fzf, npm, lazygit)
-- Clone this repository to `~/.dotfiles`
-- Symlink all configurations to your home directory
-- Install TPM (Tmux Plugin Manager)
-- Set up Neovim with lazy.nvim
+**Note**: The script is currently on branch `benz/one-line-install-script`. You'll get a 404 error until you push and merge to main. For testing before merge, use:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/papy-ganjha/Dotfiles/benz/one-line-install-script/install.sh)
+```
+
+### What the installer does:
+- Detects your OS (macOS or Linux)
+- **Creates a timestamped backup** of existing configs (with restore script)
+- Installs prerequisites (stow, neovim, tmux, git, curl)
+- Installs additional tools (ripgrep, fzf, npm, lazygit)
+- Clones this repository to `~/.dotfiles`
+- Symlinks all configurations to your home directory
+- Installs TPM (Tmux Plugin Manager)
+- Sets up Neovim with lazy.nvim
+
+### Backup & Restore
+
+The installer automatically creates backups before making changes:
+- Backups are stored in `~/.dotfiles-backup-TIMESTAMP/`
+- A restore script is created: `~/.dotfiles-backup-TIMESTAMP/restore.sh`
+- To restore your old configs: `bash ~/.dotfiles-backup-TIMESTAMP/restore.sh`
 
 ## What's Included
 
