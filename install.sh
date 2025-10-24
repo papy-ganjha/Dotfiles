@@ -239,8 +239,6 @@ backup_configs() {
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
         "$HOME/.tmux.conf"
-        "$HOME/.zshrc"
-        "$HOME/.gitconfig"
         "$HOME/.p10k.zsh"
         "$HOME/.luarc.json"
     )
@@ -281,8 +279,6 @@ symlink_configs() {
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
         "$HOME/.tmux.conf"
-        "$HOME/.zshrc"
-        "$HOME/.gitconfig"
         "$HOME/.p10k.zsh"
         "$HOME/.luarc.json"
     )
@@ -340,11 +336,11 @@ symlink_configs() {
 
     # Use stow to create symlinks
     print_info "Running stow to create symlinks..."
-    if stow . -t "$HOME" -v 2>&1; then
+    if stow . -t "$HOME" --ignore='.gitconfig' --ignore='.zshrc' -v 2>&1; then
         print_success "Configurations symlinked successfully"
     else
         print_error "Stow failed. This shouldn't happen as all conflicts were removed."
-        print_info "You can try manually: cd $DOTFILES_DIR && stow . -t $HOME"
+        print_info "You can try manually: cd $DOTFILES_DIR && stow . -t $HOME --ignore='.gitconfig' --ignore='.zshrc'"
         exit 1
     fi
 }
