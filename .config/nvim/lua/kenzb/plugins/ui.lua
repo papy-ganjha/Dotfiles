@@ -7,6 +7,9 @@ return {
     keys = {
       { "<leader>e", "<cmd>NvimTreeToggle<cr>", desc = "Toggle file explorer" },
     },
+    config = function()
+      require("kenzb.configs.nvim-tree")
+    end,
   },
 
   -- Icons
@@ -20,5 +23,8 @@ return {
     "nvim-lualine/lualine.nvim",
     event = "VeryLazy",
     dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("kenzb.configs.lualine")
+    end,
   },
 }
