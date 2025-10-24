@@ -11,6 +11,9 @@ return {
       "rafamadriz/friendly-snippets",
       "onsails/lspkind.nvim",
     },
+    config = function()
+      require("kenzb.configs.nvim-cmp")
+    end,
   },
 
   -- Snippets
@@ -26,5 +29,8 @@ return {
   {
     "windwp/nvim-autopairs",
     event = "InsertEnter",
+    config = function()
+      require("kenzb.configs.autopairs")
+    end,
   },
 }

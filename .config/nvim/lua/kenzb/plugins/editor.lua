@@ -35,6 +35,9 @@ return {
   {
     "numToStr/Comment.nvim",
     event = { "BufReadPost", "BufNewFile" },
+    config = function()
+      require("kenzb.configs.comment")
+    end,
   },
 
   -- Fuzzy finder
@@ -57,6 +60,9 @@ return {
       { "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
       { "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help tags" },
     },
+    config = function()
+      require("kenzb.configs.telescope")
+    end,
   },
 
   -- Treesitter
@@ -67,6 +73,9 @@ return {
     dependencies = {
       "nvim-treesitter/nvim-treesitter-textobjects",
     },
+    config = function()
+      require("kenzb.configs.treesitter")
+    end,
   },
 
   -- Git signs
@@ -74,6 +83,9 @@ return {
     "lewis6991/gitsigns.nvim",
     event = { "BufReadPost", "BufNewFile" },
     dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("kenzb.configs.gitsigns")
+    end,
   },
 
   -- LazyGit
@@ -135,6 +147,9 @@ return {
       { "<leader>rb", ":Refactor extract_block", mode = "n", desc = "Extract block" },
       { "<leader>rbf", ":Refactor extract_block_to_file", mode = "n", desc = "Extract block to file" },
     },
+    config = function()
+      require("kenzb.configs.refactoring")
+    end,
   },
 
   -- Distant (for remote editing)
@@ -143,7 +158,7 @@ return {
     branch = "v0.3",
     event = "VeryLazy",
     config = function()
-      require("distant"):setup()
+      require("kenzb.configs.distant")
     end,
   },
 }

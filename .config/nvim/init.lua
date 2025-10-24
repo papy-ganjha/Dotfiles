@@ -30,17 +30,12 @@ require("lazy").setup("kenzb.plugins", {
 -- Load colorscheme after plugins
 require("kenzb.core.colorscheme")
 
--- Load plugin configurations
-require("kenzb.plugins.comment")
-require("kenzb.plugins.nvim-tree")
-require("kenzb.plugins.lualine")
-require("kenzb.plugins.telescope")
-require("kenzb.plugins.nvim-cmp")
-require("kenzb.plugins.lsp.mason")
-require("kenzb.plugins.lsp.lspsaga")
-require("kenzb.plugins.lsp.lspconfig")
-require("kenzb.plugins.lsp.null-ls")
-require("kenzb.plugins.autopairs")
-require("kenzb.plugins.treesitter")
-require("kenzb.plugins.gitsigns")
-require("kenzb.plugins.distant")
+-- Auto-open NvimTree on startup
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    -- Only open if no file was specified
+    if vim.fn.argc() == 0 then
+      vim.cmd("NvimTreeOpen")
+    end
+  end,
+})

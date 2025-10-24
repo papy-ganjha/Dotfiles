@@ -8,6 +8,9 @@ return {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
     },
+    config = function()
+      require("kenzb.configs.lsp.lspconfig")
+    end,
   },
 
   -- Mason: LSP server manager
@@ -15,6 +18,9 @@ return {
     "williamboman/mason.nvim",
     cmd = "Mason",
     build = ":MasonUpdate",
+    config = function()
+      require("kenzb.configs.lsp.mason")
+    end,
   },
 
   -- Mason LSP config
@@ -40,6 +46,9 @@ return {
     "jose-elias-alvarez/null-ls.nvim",
     event = { "BufReadPost", "BufNewFile" },
     dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("kenzb.configs.lsp.null-ls")
+    end,
   },
 
   -- LSP UI enhancements
@@ -50,6 +59,9 @@ return {
     dependencies = {
       "nvim-tree/nvim-web-devicons",
     },
+    config = function()
+      require("kenzb.configs.lsp.lspsaga")
+    end,
   },
 
   -- LSP kind icons
