@@ -7,13 +7,7 @@ My personal dotfiles for Neovim, Tmux, Zsh, and Git configuration.
 **After merging to main**, install everything with one command:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/papy-ganjha/Dotfiles/main/install.sh)
-```
-
-**Note**: The script is currently on branch `benz/one-line-install-script`. You'll get a 404 error until you push and merge to main. For testing before merge, use:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/papy-ganjha/Dotfiles/benz/one-line-install-script/install.sh)
+bash <(curl -fsSL https://github.com/papy-ganjha/Dotfiles/raw/refs/heads/main/install.sh)
 ```
 
 ### What the installer does:
