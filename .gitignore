@@ -1,1 +1,5 @@
 **/.git
+
+# Neovim
+.config/nvim/lazy-lock.json
+.config/nvim/plugin/packer_compiled.lua
