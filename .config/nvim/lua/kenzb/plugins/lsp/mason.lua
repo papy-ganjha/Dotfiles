@@ -21,6 +21,7 @@ if not lspconfig_status then
 	return
 end
 
+-- local lspconfig = vim.lsp.config
 
 -- enable mason
 mason.setup()
@@ -32,7 +33,7 @@ mason_lspconfig.setup({
   },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
-  automatic_setup = false, -- prevents duplication of pyright
+  automatic_setup = true, -- prevents duplication of pyright
   automatic_enable = {
     exclude = {
       "pyright",
@@ -40,6 +41,7 @@ mason_lspconfig.setup({
   }
 })
 
+-- vim.lsp.config("pyright", {})
 lspconfig.pyright.setup({
   settings = {
     python = {
