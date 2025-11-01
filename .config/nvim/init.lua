@@ -30,6 +30,15 @@ require("lazy").setup("kenzb.plugins", {
 -- Load colorscheme after plugins
 require("kenzb.core.colorscheme")
 
+-- Clean up old shada temporary files on startup (performance optimization)
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    local shada_dir = vim.fn.stdpath("state") .. "/shada"
+    vim.fn.system("rm -f " .. shada_dir .. "/main.shada.tmp.* 2>/dev/null")
+  end,
+  once = true,
+})
+
 -- Auto-open NvimTree on startup
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
