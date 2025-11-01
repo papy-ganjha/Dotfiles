@@ -77,7 +77,9 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting web-search)
+# Note: Syntax highlighting temporarily disabled for performance
+# To install fast-syntax-highlighting: git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+plugins=(git fast-syntax-highlighting zsh-autosuggestions web-search)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -148,8 +150,31 @@ autoload -Uz compinit && compinit
 ####
 [[ -s /Users/kenz/.rsvm/rsvm.sh ]] && . /Users/kenz/.rsvm/rsvm.sh # This loads RSVM
 
-### FZF on mac 
+### FZF on mac
 set rtp+=/opt/homebrew/opt/fzf
+
+### Performance: Clean up orphaned gitstatusd processes
+# These accumulate over time from P10k and cause terminal lag
+# This function kills gitstatusd processes older than 1 day
+cleanup_old_gitstatusd() {
+  # Find and kill gitstatusd processes older than 1 day (86400 seconds)
+  pgrep -f gitstatusd | while read pid; do
+    # Get process age in seconds
+    local age=$(ps -p $pid -o etime= 2>/dev/null | awk -F'[:-]' '{
+      if (NF == 4) print ($1*86400 + $2*3600 + $3*60 + $4);
+      else if (NF == 3) print ($1*3600 + $2*60 + $3);
+      else if (NF == 2) print ($1*60 + $2);
+      else print $1;
+    }')
+    # Kill if older than 1 day
+    if [[ $age -gt 86400 ]]; then
+      kill $pid 2>/dev/null
+    fi
+  done
+}
+
+# Run cleanup on shell startup (runs once per shell session)
+cleanup_old_gitstatusd &>/dev/null
 
 # Kube aliases
 alias kget='kubectl get pods,jobs,rs,statefulset'

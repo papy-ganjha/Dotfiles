@@ -21,7 +21,8 @@ opt.ignorecase = true
 opt.smartcase = true
 
 -- cursor line
-opt.cursorline = true
+-- Disabled: cursorline + gitsigns causes performance issues on cursor movement
+-- opt.cursorline = true
 
 -- appareance
 opt.termguicolors = true
@@ -37,4 +38,14 @@ opt.splitright = true
 opt.splitbelow = true
 
 opt.iskeyword:append("-") -- consider it as part of a word
+
+-- Performance: Limit shada file size to prevent accumulation
+-- '100 = save marks for last 100 files
+-- <50 = max 50 lines per register
+-- s10 = skip registers larger than 10KB
+-- h = disable search highlighting on startup
+opt.shada = "!,'100,<50,s10,h"
+
+-- Performance: Reduce update time for better responsiveness
+opt.updatetime = 300
 
