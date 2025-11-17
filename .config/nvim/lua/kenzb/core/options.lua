@@ -49,3 +49,14 @@ opt.shada = "!,'100,<50,s10,h"
 -- Performance: Reduce update time for better responsiveness
 opt.updatetime = 300
 
+-- Remove ':' from indentkeys and cinkeys to prevent auto-indent when typing : in insert mode
+vim.api.nvim_create_autocmd({"FileType", "BufEnter"}, {
+  pattern = "*",
+  callback = function()
+    -- Remove all variations of ':' from indentkeys
+    vim.opt_local.indentkeys:remove(":")
+    vim.opt_local.indentkeys:remove("<:>")
+    vim.opt_local.cinkeys:remove(":")
+  end,
+})
+

@@ -12,7 +12,7 @@ treesitter.setup({
         disable = {"dockerfile"}
 	},
 	-- enable indentation
-	indent = { enable = true, disable = {"dockerfile"}},
+	indent = { enable = true, disable = {"dockerfile", "yaml"}},
 	-- enable autotagging (w/ nvim-ts-autotag plugin)
 	autotag = { enable = true },
 	-- ensure these language parsers are installed
