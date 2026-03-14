@@ -46,6 +46,11 @@ telescope.setup({
     },
   },
   pickers = {
+    live_grep = {
+      additional_args = function()
+        return { "--hidden", "--glob", "!.git/*" }
+      end,
+    },
     lsp_definitions = {
       -- Force floating window for definitions
       layout_config = {
