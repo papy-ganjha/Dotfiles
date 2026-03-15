@@ -238,9 +238,11 @@ backup_configs() {
     local configs_to_backup=(
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
+        "$HOME/.config/lazygit"
         "$HOME/.tmux.conf"
         "$HOME/.p10k.zsh"
         "$HOME/.luarc.json"
+        "$HOME/Library/Application Support/lazygit/config.yml"
     )
 
     local backed_up_count=0
@@ -278,6 +280,7 @@ symlink_configs() {
     local items_to_remove=(
         "$HOME/.config/nvim"
         "$HOME/.config/.tmux.conf"
+        "$HOME/.config/lazygit"
         "$HOME/.tmux.conf"
         "$HOME/.p10k.zsh"
         "$HOME/.luarc.json"
@@ -383,6 +386,14 @@ main() {
     symlink_configs
     install_tpm
     setup_neovim
+
+    # macOS: lazygit defaults to ~/Library/Application Support/lazygit/
+    # Symlink to the stow-managed XDG config location
+    if [[ "$OSTYPE" == "darwin"* ]] && [[ -f "$HOME/.config/lazygit/config.yml" ]]; then
+        mkdir -p "$HOME/Library/Application Support/lazygit"
+        ln -sf "$HOME/.config/lazygit/config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
+        print_success "Symlinked lazygit config to macOS default path"
+    fi
 
     echo ""
     echo "======================================"
