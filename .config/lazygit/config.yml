@@ -1,16 +1,2 @@
 os:
-  copyToClipboardCmd: "printf '\\033]52;c;%s\\a' $(printf '%s' {{text}} | base64 | tr -d '\\n') > /dev/tty"
-
-customCommands:
-  - key: '<c-h>'
-    command: 'tmux select-pane -L'
-    context: 'global'
-  - key: '<c-j>'
-    command: 'tmux select-pane -D'
-    context: 'global'
-  - key: '<c-k>'
-    command: 'tmux select-pane -U'
-    context: 'global'
-  - key: '<c-l>'
-    command: 'tmux select-pane -R'
-    context: 'global'
+  copyToClipboardCmd: "printf '\\033]52;c;%s\\a' $(printf '%s' {{text}} | base64 | tr -d '\\n') > $(tmux display-message -p '#{pane_tty}' 2>/dev/null || echo /dev/tty)"

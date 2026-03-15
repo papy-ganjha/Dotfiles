@@ -215,17 +215,37 @@ install_prerequisites() {
 
 # Clone or update dotfiles
 setup_dotfiles() {
-    DOTFILES_DIR="$HOME/.dotfiles"
+    # Detect if the script is running from within the dotfiles repo
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local repo_root
+    repo_root="$(cd "$script_dir" && git rev-parse --show-toplevel 2>/dev/null || echo "")"
 
-    if [[ -d "$DOTFILES_DIR" ]]; then
-        print_info "Dotfiles directory already exists at $DOTFILES_DIR"
-        print_info "Updating repository..."
-        cd "$DOTFILES_DIR"
-        git pull origin main || print_warning "Could not update repository"
+    if [[ -n "$repo_root" ]] && [[ -f "$repo_root/.tmux.conf" ]] && [[ -d "$repo_root/.config/nvim" ]]; then
+        # Running from inside the dotfiles repo — use it directly
+        DOTFILES_DIR="$repo_root"
+        local current_branch
+        current_branch=$(cd "$DOTFILES_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+        local current_commit
+        current_commit=$(cd "$DOTFILES_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        print_info "Running from dotfiles repo at $DOTFILES_DIR"
+        print_info "Using branch '$current_branch' (commit $current_commit)"
     else
-        print_info "Cloning dotfiles repository..."
-        git clone https://github.com/papy-ganjha/Dotfiles.git "$DOTFILES_DIR"
-        cd "$DOTFILES_DIR"
+        # Not running from the repo — clone or update ~/.dotfiles
+        DOTFILES_DIR="$HOME/.dotfiles"
+
+        if [[ -d "$DOTFILES_DIR" ]]; then
+            print_info "Dotfiles directory already exists at $DOTFILES_DIR"
+            cd "$DOTFILES_DIR"
+            local current_branch
+            current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+            print_info "On branch '$current_branch', pulling latest..."
+            git pull origin "$current_branch" || print_warning "Could not update repository"
+        else
+            print_info "Cloning dotfiles repository..."
+            git clone https://github.com/papy-ganjha/Dotfiles.git "$DOTFILES_DIR"
+            cd "$DOTFILES_DIR"
+        fi
     fi
 
     print_success "Dotfiles repository ready at $DOTFILES_DIR"
@@ -339,11 +359,11 @@ symlink_configs() {
 
     # Use stow to create symlinks
     print_info "Running stow to create symlinks..."
-    if stow . -t "$HOME" --ignore='.gitconfig' --ignore='.zshrc' -v 2>&1; then
+    if stow . -t "$HOME" -v 2>&1; then
         print_success "Configurations symlinked successfully"
     else
         print_error "Stow failed. This shouldn't happen as all conflicts were removed."
-        print_info "You can try manually: cd $DOTFILES_DIR && stow . -t $HOME --ignore='.gitconfig' --ignore='.zshrc'"
+        print_info "You can try manually: cd $DOTFILES_DIR && stow . -t $HOME"
         exit 1
     fi
 }
