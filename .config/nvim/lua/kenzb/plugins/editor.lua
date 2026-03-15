@@ -96,6 +96,21 @@ return {
     keys = {
       { "<leader>gg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
     },
+    config = function()
+      -- Remap C-h/j/k/l in the lazygit terminal buffer to switch tmux panes directly
+      -- We bypass vim-tmux-navigator because it navigates neovim windows first,
+      -- which moves focus behind the lazygit float
+      vim.api.nvim_create_autocmd("TermOpen", {
+        pattern = "*lazygit*",
+        callback = function()
+          local opts = { buffer = true, silent = true }
+          vim.keymap.set("t", "<C-h>", function() vim.fn.system("tmux select-pane -L") end, opts)
+          vim.keymap.set("t", "<C-j>", function() vim.fn.system("tmux select-pane -D") end, opts)
+          vim.keymap.set("t", "<C-k>", function() vim.fn.system("tmux select-pane -U") end, opts)
+          vim.keymap.set("t", "<C-l>", function() vim.fn.system("tmux select-pane -R") end, opts)
+        end,
+      })
+    end,
   },
 
   -- Docstring generation

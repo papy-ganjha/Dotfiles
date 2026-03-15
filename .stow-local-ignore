@@ -2,4 +2,10 @@ scripts
 README.md
 .git
 .gitignore
-.gitconfig 
+.gitconfig
+.zshrc
+.claude
+backup.txt
+docs
+install.sh
+setup.sh
