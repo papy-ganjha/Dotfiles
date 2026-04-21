@@ -1,2 +1,2 @@
 os:
-  copyToClipboardCmd: "printf '\\033]52;c;%s\\a' $(printf '%s' {{text}} | base64 | tr -d '\\n') > $(tmux display-message -p '#{pane_tty}' 2>/dev/null || echo /dev/tty)"
+  copyToClipboardCmd: "printf '%s' {{text}} | clipboard-copy"

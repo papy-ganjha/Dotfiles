@@ -33,6 +33,17 @@ opt.signcolumn = "yes"
 opt.backspace = "indent,eol,start"
 opt.clipboard:append("unnamedplus")  -- use system clipboard with vim  operations
 
+-- Remote clipboard: pipes yanks through clipboard-copy (TCP relay → OSC52 fallback)
+if vim.fn.executable('clipboard-copy') == 1 then
+  vim.api.nvim_create_autocmd('TextYankPost', {
+    callback = function()
+      if vim.v.event.operator == 'y' then
+        vim.fn.system('clipboard-copy', vim.fn.getreg('"'))
+      end
+    end
+  })
+end
+
 -- split windows
 opt.splitright = true
 opt.splitbelow = true

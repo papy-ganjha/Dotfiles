@@ -1,0 +1,13 @@
+#!/bin/sh
+# Smart clipboard: TCP relay (mosh) with OSC52 fallback (SSH)
+CLIPBOARD_PORT=2225
+
+data=$(cat)
+
+if printf '%s' "$data" | nc -w1 localhost "$CLIPBOARD_PORT" 2>/dev/null; then
+    exit 0
+fi
+
+encoded=$(printf '%s' "$data" | base64 | tr -d '\n')
+tty=$(tmux display-message -p '#{pane_tty}' 2>/dev/null || echo /dev/tty)
+printf '\033]52;c;%s\a' "$encoded" > "$tty"
