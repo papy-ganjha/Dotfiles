@@ -49,6 +49,20 @@ opt.shada = "!,'100,<50,s10,h"
 -- Performance: Reduce update time for better responsiveness
 opt.updatetime = 300
 
+-- OSC 52 clipboard: yank to terminal clipboard via tmux client tty (works over mosh/ssh)
+if os.getenv('TMUX') then
+  vim.api.nvim_create_autocmd('TextYankPost', {
+    callback = function()
+      if vim.v.event.operator == 'y' then
+        vim.fn.system(
+          'yank > "$(tmux display-message -p \'#{client_tty}\' 2>/dev/null || echo /dev/tty)"',
+          vim.fn.getreg('"')
+        )
+      end
+    end,
+  })
+end
+
 -- Remove ':' from indentkeys and cinkeys to prevent auto-indent when typing : in insert mode
 vim.api.nvim_create_autocmd({"FileType", "BufEnter"}, {
   pattern = "*",

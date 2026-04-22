@@ -1,19 +1,14 @@
 #!/bin/bash
 set -eu
 
-buf=$(cat -- "$@")
+# OSC 52 clipboard: streams stdin through base64 into an OSC52 escape sequence.
+# Caller redirects stdout to the target terminal (e.g., #{client_tty}).
+# Uses a pipeline — never buffers the full content in a shell variable.
 
-# OSC 52 - max 74994 bytes before base64 encoding
 maxlen=74994
-buflen=$(printf %s "$buf" | wc -c)
-if [ "$buflen" -gt "$maxlen" ]; then
-    printf "input is %d bytes too long\n" "$((buflen - maxlen))" >&2
-fi
 
-esc="\033]52;c;$(printf "%s" "$buf" | head -c $maxlen | base64 | tr -d '\r\n')\a"
-
-if [ -n "${TMUX-}" ]; then
-    esc="\033Ptmux;\033$esc\033\\"
-fi
-
-printf "%b" "$esc"
+{
+  printf '\033]52;c;'
+  head -c "$maxlen" | base64 | tr -d '\r\n'
+  printf '\a'
+}
