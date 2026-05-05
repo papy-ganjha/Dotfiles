@@ -1,0 +1,21 @@
+#!/bin/bash
+# Connect to Mac Studio via mosh over VPN.
+# Works around asymmetric routing: the Mac Studio responds from 17.233.19.228
+# but receives on 17.192.201.28. We bind mosh-server to 0.0.0.0 and connect
+# the client to the responding IP.
+
+HOST="${1:-macstud}"
+RESPOND_IP="17.233.19.228"
+SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -s -l LANG=en_US.UTF-8"
+
+output=$(ssh "$HOST" "$SERVER_CMD" 2>&1)
+port=$(echo "$output" | grep "^MOSH CONNECT" | awk '{print $2}')
+key=$(echo "$output" | grep "^MOSH CONNECT" | awk '{print $3}')
+
+if [ -z "$key" ] || [ -z "$port" ]; then
+    echo "Failed to start mosh-server:"
+    echo "$output"
+    exit 1
+fi
+
+exec env MOSH_KEY="$key" mosh-client "$RESPOND_IP" "$port"

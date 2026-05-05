@@ -77,6 +77,7 @@ alias brew_switch_arm='eval "$(/opt/homebrew/bin/brew shellenv)"'
 # Alias for neo vim instead of vim
 alias vim='nvim'
 # alias docker='vessel'
+alias mosh-macstud='mosh-vpn macstud'
 
 # POETRY PATH
 export PATH="/Users/kenz/.local/bin:$PATH"
