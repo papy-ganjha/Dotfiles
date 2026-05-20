@@ -189,6 +189,14 @@ install_prerequisites() {
         # Install additional dependencies
         brew install ripgrep fzf npm lazygit
 
+        # Install nvim plugin dependencies (snacks.nvim image support, picker)
+        brew install fd imagemagick ghostscript tectonic tree-sitter
+
+        # Expose Ghostty CLI to PATH (needed for detection inside tmux)
+        if [[ -x "/Applications/Ghostty.app/Contents/MacOS/ghostty" ]] && ! command_exists ghostty; then
+            sudo ln -sf /Applications/Ghostty.app/Contents/MacOS/ghostty /usr/local/bin/ghostty
+        fi
+
     elif [[ "$OS" == "linux" ]]; then
         # Update package list
         sudo apt-get update
