@@ -6,15 +6,16 @@
 
 HOST="${1:-macstud}"
 RESPOND_IP="17.233.19.228"
-SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -s -l LANG=en_US.UTF-8"
+SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
 
-output=$(ssh "$HOST" "$SERVER_CMD" 2>&1)
-port=$(echo "$output" | grep "^MOSH CONNECT" | awk '{print $2}')
-key=$(echo "$output" | grep "^MOSH CONNECT" | awk '{print $3}')
+output=$(ssh -o ProxyCommand=none "$HOST" "$SERVER_CMD" 2>/dev/null)
+connect_line=$(echo "$output" | grep "MOSH CONNECT")
+port=$(echo "$connect_line" | awk '{print $3}')
+key=$(echo "$connect_line" | awk '{print $4}')
 
 if [ -z "$key" ] || [ -z "$port" ]; then
-    echo "Failed to start mosh-server:"
-    echo "$output"
+    echo "Failed to start mosh-server. Raw output:"
+    ssh -o ProxyCommand=none "$HOST" "$SERVER_CMD"
     exit 1
 fi
 
