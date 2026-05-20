@@ -8,10 +8,28 @@ return {
     opts = {
       bigfile = { enabled = true },
       dashboard = { enabled = true },
-      explorer = { enabled = true },
+      explorer = {
+        enabled = true,
+      },
       indent = { enabled = false },
       input = { enabled = true },
-      picker = { enabled = true },
+      picker = {
+        enabled = true,
+        sources = {
+          explorer = {
+            win = {
+              list = {
+                keys = {
+                  ["<c-h>"] = false,
+                  ["<c-j>"] = false,
+                  ["<c-k>"] = false,
+                  ["<c-l>"] = false,
+                },
+              },
+            },
+          },
+        },
+      },
       notifier = { enabled = true },
       quickfile = { enabled = true },
       scope = { enabled = false },
@@ -28,6 +46,18 @@ return {
       { "<leader>fb", function() Snacks.picker.buffers() end, desc = "Buffers" },
       { "<leader>fh", function() Snacks.picker.help() end, desc = "Help tags" },
     },
+    init = function()
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "snacks_picker_list",
+        callback = function(ev)
+          local opts = { buffer = ev.buf, silent = true }
+          vim.keymap.set("n", "<C-h>", function() vim.cmd("TmuxNavigateLeft") end, opts)
+          vim.keymap.set("n", "<C-j>", function() vim.cmd("TmuxNavigateDown") end, opts)
+          vim.keymap.set("n", "<C-k>", function() vim.cmd("TmuxNavigateUp") end, opts)
+          vim.keymap.set("n", "<C-l>", function() vim.cmd("TmuxNavigateRight") end, opts)
+        end,
+      })
+    end,
   },
 
   -- Icons

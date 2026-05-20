@@ -145,21 +145,68 @@ return {
           height = 0.3,
           keys = {
             nav_h = { "<C-h>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
               vim.cmd("stopinsert")
               vim.cmd("TmuxNavigateLeft")
             end, mode = "t", desc = "Navigate left" },
             nav_j = { "<C-j>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
               vim.cmd("stopinsert")
               vim.cmd("TmuxNavigateDown")
             end, mode = "t", desc = "Navigate down" },
             nav_k = { "<C-k>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
               vim.cmd("stopinsert")
-              vim.cmd("TmuxNavigateUp")
-            end, mode = "t", desc = "Navigate up" },
+              vim.cmd("wincmd p")
+            end, mode = "t", desc = "Navigate to previous window" },
             nav_l = { "<C-l>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
               vim.cmd("stopinsert")
               vim.cmd("TmuxNavigateRight")
             end, mode = "t", desc = "Navigate right" },
+            maximize = { "<C-f>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local win = vim.api.nvim_get_current_win()
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(win, math.floor(total * 0.3))
+              else
+                vim.g.claude_maximized = true
+                vim.cmd("wincmd _")
+                vim.cmd("wincmd |")
+              end
+              vim.defer_fn(function()
+                local buf = vim.api.nvim_get_current_buf()
+                local chan = vim.bo[buf].channel
+                if chan and chan > 0 then
+                  local win = vim.api.nvim_get_current_win()
+                  local height = vim.api.nvim_win_get_height(win)
+                  local width = vim.api.nvim_win_get_width(win)
+                  vim.fn.jobresize(chan, width, height)
+                end
+              end, 50)
+            end, mode = "t", desc = "Toggle maximize terminal" },
           },
         },
       },
