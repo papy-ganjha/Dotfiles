@@ -137,7 +137,33 @@ return {
   {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
-    config = true,
+    opts = {
+      terminal = {
+        split_side = "right",
+        snacks_win_opts = {
+          position = "bottom",
+          height = 0.3,
+          keys = {
+            nav_h = { "<C-h>", function()
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateLeft")
+            end, mode = "t", desc = "Navigate left" },
+            nav_j = { "<C-j>", function()
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateDown")
+            end, mode = "t", desc = "Navigate down" },
+            nav_k = { "<C-k>", function()
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateUp")
+            end, mode = "t", desc = "Navigate up" },
+            nav_l = { "<C-l>", function()
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateRight")
+            end, mode = "t", desc = "Navigate right" },
+          },
+        },
+      },
+    },
     keys = {
       { "<leader>a", nil, desc = "AI/Claude Code" },
       { "<leader>ac", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
