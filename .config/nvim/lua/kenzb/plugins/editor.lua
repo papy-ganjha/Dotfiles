@@ -228,6 +228,8 @@ return {
       },
       { "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
       { "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
+      { "<leader>ay", "<cmd>ClaudeCode --dangerously-skip-permissions<cr>", desc = "Claude (skip permissions)" },
+      { "<leader>aY", "<cmd>ClaudeCode --continue --dangerously-skip-permissions<cr>", desc = "Continue Claude (skip permissions)" },
     },
   },
 
