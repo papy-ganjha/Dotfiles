@@ -59,7 +59,7 @@ return {
   -- Git signs
   {
     "lewis6991/gitsigns.nvim",
-    event = { "BufReadPost", "BufNewFile" },
+    event = "VeryLazy",
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()
       require("kenzb.configs.gitsigns")
