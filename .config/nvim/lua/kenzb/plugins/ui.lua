@@ -109,6 +109,28 @@ return {
         Snacks.terminal.open(nil, { count = vim.fn.reltimefloat(vim.fn.reltime()) * 1000 })
       end, desc = "New terminal" },
       { "<leader>tg", function() Snacks.terminal.toggle() end, desc = "Toggle terminal" },
+      { "<leader>tk", function()
+        local cur_buf = vim.api.nvim_get_current_buf()
+        if vim.bo[cur_buf].buftype == "terminal" then
+          vim.api.nvim_buf_delete(cur_buf, { force = true })
+          return
+        end
+        local terms = Snacks.terminal.list()
+        if #terms == 0 then
+          vim.notify("No terminals open", vim.log.levels.INFO)
+          return
+        end
+        vim.ui.select(terms, {
+          prompt = "Kill terminal",
+          format_item = function(t)
+            return string.format("[%d] %s", t.buf, vim.api.nvim_buf_get_name(t.buf))
+          end,
+        }, function(choice)
+          if choice then
+            vim.api.nvim_buf_delete(choice.buf, { force = true })
+          end
+        end)
+      end, desc = "Kill terminal" },
       { "<leader>tv", function()
         local visible_term
         for _, t in ipairs(Snacks.terminal.list()) do
