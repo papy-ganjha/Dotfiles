@@ -210,3 +210,11 @@ function kube-update-setting-keys() {
         --save-config --dry-run=client --from-file $1 -o yaml \
         | kubectl apply -f -
 }
+
+# Set terminal title (cwd before prompt, cwd + command while running)
+# Useful for nvim's :terminal which exposes term_title
+autoload -Uz add-zsh-hook
+function _set_term_title_precmd() { print -Pn "\e]2;%~\a" }
+function _set_term_title_preexec() { print -Pn "\e]2;%~ \$ $1\a" }
+add-zsh-hook precmd _set_term_title_precmd
+add-zsh-hook preexec _set_term_title_preexec

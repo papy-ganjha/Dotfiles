@@ -213,10 +213,25 @@ return {
     },
     keys = {
       { "<leader>a", nil, desc = "AI/Claude Code" },
-      { "<leader>ac", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
+      { "<leader>ac", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode")
+      end, desc = "Toggle Claude" },
       { "<leader>af", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
-      { "<leader>ar", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude" },
-      { "<leader>aC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue Claude" },
+      { "<leader>ar", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --resume")
+      end, desc = "Resume Claude" },
+      { "<leader>aC", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --continue")
+      end, desc = "Continue Claude" },
       { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
       { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },
       { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
@@ -228,8 +243,18 @@ return {
       },
       { "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
       { "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
-      { "<leader>ay", "<cmd>ClaudeCode --dangerously-skip-permissions<cr>", desc = "Claude (skip permissions)" },
-      { "<leader>aY", "<cmd>ClaudeCode --continue --dangerously-skip-permissions<cr>", desc = "Continue Claude (skip permissions)" },
+      { "<leader>ay", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --dangerously-skip-permissions")
+      end, desc = "Claude (skip permissions)" },
+      { "<leader>aY", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --continue --dangerously-skip-permissions")
+      end, desc = "Continue Claude (skip permissions)" },
     },
   },
 
