@@ -49,6 +49,51 @@ opt.shada = "!,'100,<50,s10,h"
 -- Performance: Reduce update time for better responsiveness
 opt.updatetime = 300
 
+-- Remove soft wraps from text yanked in terminal buffers
+-- IMPORTANT: must register BEFORE the OSC52 clipboard autocmd so it runs first
+-- and the modified register is what gets sent to the system clipboard
+vim.api.nvim_create_autocmd("TextYankPost", {
+  callback = function()
+    if vim.bo.buftype ~= "terminal" then return end
+    if vim.v.event.operator ~= "y" then return end
+    local regname = vim.v.event.regname == "" and '"' or vim.v.event.regname
+    local content = vim.fn.getreg(regname)
+    if not content or content == "" then return end
+    local lines = vim.split(content, "\n", { plain = true })
+    if lines[#lines] == "" then table.remove(lines) end
+    if #lines < 2 then return end
+    local max_len = 0
+    for _, line in ipairs(lines) do
+      max_len = math.max(max_len, vim.fn.strdisplaywidth(line))
+    end
+    if max_len < 40 then return end
+    -- Use 85% of max as threshold — terminal wraps can land at slightly different
+    -- column positions due to wide chars, but they're all "long" lines
+    local threshold = math.floor(max_len * 0.85)
+    local merged = { lines[1] }
+    for i = 2, #lines do
+      local prev = merged[#merged]
+      local prev_len = vim.fn.strdisplaywidth(prev)
+      local last_char = prev:sub(-1)
+      -- Treat as soft wrap if: previous line is "long enough" AND doesn't end
+      -- with natural sentence/paragraph punctuation
+      local is_soft_wrap = prev_len >= threshold
+        and last_char ~= "." and last_char ~= "!" and last_char ~= "?"
+        and last_char ~= " "
+      if is_soft_wrap then
+        merged[#merged] = prev .. lines[i]
+      else
+        table.insert(merged, lines[i])
+      end
+    end
+    local result = table.concat(merged, "\n")
+    vim.fn.setreg(regname, result, "v")
+    if regname == '"' then
+      vim.fn.setreg("+", result, "v")
+    end
+  end,
+})
+
 -- OSC 52 clipboard: yank to terminal clipboard via tmux client tty (works over mosh/ssh)
 if os.getenv('TMUX') then
   vim.api.nvim_create_autocmd('TextYankPost', {

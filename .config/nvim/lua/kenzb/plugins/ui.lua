@@ -80,6 +80,29 @@ return {
               vim.cmd("stopinsert")
               vim.cmd("TmuxNavigateRight")
             end, mode = "t", desc = "Navigate right" },
+            maximize = { "<C-f>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local win = vim.api.nvim_get_current_win()
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(win, math.floor(total * 0.3))
+              else
+                vim.g.claude_maximized = true
+                vim.cmd("wincmd _")
+                vim.cmd("wincmd |")
+              end
+              vim.defer_fn(function()
+                local buf = vim.api.nvim_get_current_buf()
+                local chan = vim.bo[buf].channel
+                if chan and chan > 0 then
+                  local win = vim.api.nvim_get_current_win()
+                  local height = vim.api.nvim_win_get_height(win)
+                  local width = vim.api.nvim_win_get_width(win)
+                  vim.fn.jobresize(chan, width, height)
+                end
+              end, 50)
+            end, mode = "t", desc = "Toggle maximize terminal" },
           },
         },
       },
