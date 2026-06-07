@@ -174,64 +174,74 @@ return {
         end
       end, desc = "New terminal (side)" },
       { "<leader>tl", function()
-        local terms = Snacks.terminal.list()
+        local claude_buf
+        local ok, claude_term = pcall(require, "claudecode.terminal")
+        if ok then claude_buf = claude_term.get_active_terminal_bufnr() end
+        local terms = {}
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t.buf ~= claude_buf then table.insert(terms, t) end
+        end
         if #terms == 0 then
           vim.notify("No terminals open", vim.log.levels.INFO)
           return
         end
+        local function run(cmd, timeout)
+          local res = vim.system(cmd, { text = true }):wait(timeout)
+          if res.code ~= 0 then return "" end
+          return res.stdout or ""
+        end
+        local labels = {}
+        for _, t in ipairs(terms) do
+          local label_parts = {}
+          local chan = vim.bo[t.buf].channel
+          local pid
+          if chan and chan > 0 then
+            local pok, p = pcall(vim.fn.jobpid, chan)
+            if pok and p > 0 then pid = p end
+          end
+          if pid then
+            local out = run({ "lsof", "-a", "-d", "cwd", "-p", tostring(pid), "-Fn" }, 200)
+            local cwd = out:match("\nn(/[^\n]+)") or out:match("^n(/[^\n]+)")
+            if cwd then
+              table.insert(label_parts, vim.fn.fnamemodify(cwd, ":~"))
+            end
+          end
+          local cmd
+          if pid then
+            local children = run({ "pgrep", "-P", tostring(pid) }, 200):gsub("%s+$", "")
+            if children ~= "" then
+              local first_child = children:match("^(%d+)")
+              if first_child then
+                cmd = vim.trim(run({ "ps", "-p", first_child, "-o", "command=" }, 200):gsub("\n", ""))
+              end
+            end
+          end
+          if not cmd or cmd == "" then
+            local lines = vim.api.nvim_buf_get_lines(t.buf, -50, -1, false)
+            for i = #lines, 1, -1 do
+              local line = lines[i]
+              local after_prompt = line:match("[$%%>]%s+(.+)$") or line:match("❯%s+(.+)$")
+              if after_prompt and vim.trim(after_prompt) ~= "" then
+                cmd = "(idle) " .. vim.trim(after_prompt):sub(1, 60)
+                break
+              end
+            end
+          end
+          if cmd and cmd ~= "" then
+            table.insert(label_parts, cmd:sub(1, 60))
+          end
+          local label = #label_parts > 0 and table.concat(label_parts, "  │  ")
+            or vim.api.nvim_buf_get_name(t.buf)
+          labels[t] = string.format("[%d] %s", t.buf, label)
+        end
         vim.ui.select(terms, {
           prompt = "Select terminal",
-          format_item = function(t)
-            local label_parts = {}
-            local chan = vim.bo[t.buf].channel
-            local pid
-            if chan and chan > 0 then
-              local ok, p = pcall(vim.fn.jobpid, chan)
-              if ok and p > 0 then pid = p end
-            end
-            -- Get cwd via the terminal job's pid
-            if pid then
-              local out = vim.fn.system("lsof -a -d cwd -p " .. pid .. " -Fn 2>/dev/null | tail -1")
-              local cwd = out:match("^n(.+)$") or out:match("^n(.-)\n")
-              if cwd then
-                table.insert(label_parts, vim.fn.fnamemodify(cwd, ":~"))
-              end
-            end
-            -- Get the running child command, or fall back to last command from buffer
-            local cmd
-            if pid then
-              local children = vim.fn.system("pgrep -P " .. pid .. " 2>/dev/null"):gsub("%s+$", "")
-              if children ~= "" then
-                local first_child = children:match("^(%d+)")
-                cmd = vim.fn.system("ps -p " .. first_child .. " -o command= 2>/dev/null"):gsub("\n", "")
-                cmd = vim.trim(cmd)
-              end
-            end
-            if not cmd or cmd == "" then
-              -- Idle: scan buffer for last command (line containing a prompt char)
-              local lines = vim.api.nvim_buf_get_lines(t.buf, -50, -1, false)
-              for i = #lines, 1, -1 do
-                local line = lines[i]
-                local after_prompt = line:match("[❯$%%>]%s+(.+)$")
-                if after_prompt and vim.trim(after_prompt) ~= "" then
-                  cmd = "(idle) " .. vim.trim(after_prompt):sub(1, 60)
-                  break
-                end
-              end
-            end
-            if cmd and cmd ~= "" then
-              table.insert(label_parts, cmd:sub(1, 60))
-            end
-            local label = #label_parts > 0 and table.concat(label_parts, "  │  ")
-              or vim.api.nvim_buf_get_name(t.buf)
-            return string.format("[%d] %s", t.buf, label)
-          end,
+          format_item = function(t) return labels[t] end,
         }, function(choice)
           if choice then
             for _, t in ipairs(terms) do
               if t ~= choice and t:win_valid() then t:hide() end
             end
-            local claude_buf = require("claudecode.terminal").get_active_terminal_bufnr()
             if claude_buf then
               for _, win in ipairs(vim.api.nvim_list_wins()) do
                 if vim.api.nvim_win_get_buf(win) == claude_buf then

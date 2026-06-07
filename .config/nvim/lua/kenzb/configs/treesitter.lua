@@ -9,7 +9,7 @@ treesitter.setup({
 	-- enable syntax highlighting
 	highlight = {
 		enable = true,
-        disable = {"dockerfile", "markdown"}
+        disable = {"dockerfile", "markdown", "markdown_inline"}
 	},
 	-- enable indentation
 	indent = { enable = true, disable = {"dockerfile", "yaml"}},
