@@ -1,22 +1,33 @@
 #!/bin/bash
 # Connect to Mac Studio via mosh over VPN.
-# Works around asymmetric routing: the Mac Studio responds from 17.233.19.228
-# but receives on 17.192.201.28. We bind mosh-server to 0.0.0.0 and connect
-# the client to the responding IP.
+# Works around asymmetric routing: the Mac Studio responds from a different
+# interface than it receives on, so the mosh client must talk to the IP the
+# server replies from. We bind mosh-server to 0.0.0.0 and discover the
+# responding IP at runtime by asking the remote which source address it would
+# use to route packets back to us.
 
 HOST="${1:-macstud}"
-RESPOND_IP="17.233.19.228"
 SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
 
-output=$(ssh -o ProxyCommand=none "$HOST" "$SERVER_CMD" 2>/dev/null)
+# Remote script: print the source IP used to reach this SSH client, then start
+# mosh-server. Both run in the same session so the detected IP matches the
+# route mosh traffic will take.
+remote_script='
+client_ip=${SSH_CONNECTION%% *}
+iface=$(route -n get "$client_ip" 2>/dev/null | awk "/interface:/ {print \$2}")
+echo "RESPOND_IP=$(ifconfig "$iface" 2>/dev/null | awk "/inet /{print \$2; exit}")"
+'"$SERVER_CMD"
+
+output=$(ssh -o ProxyCommand=none "$HOST" "$remote_script" 2>/dev/null)
+respond_ip=$(echo "$output" | sed -n 's/^RESPOND_IP=//p')
 connect_line=$(echo "$output" | grep "MOSH CONNECT")
 port=$(echo "$connect_line" | awk '{print $3}')
 key=$(echo "$connect_line" | awk '{print $4}')
 
-if [ -z "$key" ] || [ -z "$port" ]; then
-    echo "Failed to start mosh-server. Raw output:"
-    ssh -o ProxyCommand=none "$HOST" "$SERVER_CMD"
+if [ -z "$key" ] || [ -z "$port" ] || [ -z "$respond_ip" ]; then
+    echo "Failed to start mosh-server or detect respond IP. Raw output:"
+    echo "$output"
     exit 1
 fi
 
-exec env MOSH_KEY="$key" mosh-client "$RESPOND_IP" "$port"
+exec env MOSH_KEY="$key" mosh-client "$respond_ip" "$port"
