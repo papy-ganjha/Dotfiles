@@ -5,6 +5,10 @@ local keymap = vim.keymap -- for conciseness
 -- general keymaps
 keymap.set("i", "jk", "<ESC>")
 keymap.set("n", "<leader>nh", ":nohl<CR>") -- no highlights
+keymap.set("n", "<leader>tw", function()
+  vim.wo.wrap = not vim.wo.wrap
+  vim.notify("wrap = " .. tostring(vim.wo.wrap))
+end, { desc = "Toggle window wrap" })
 
 -- Save easily file
 keymap.set("n", "<leader>w", ":w<CR>")
