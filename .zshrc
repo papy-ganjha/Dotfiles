@@ -77,7 +77,15 @@ alias brew_switch_arm='eval "$(/opt/homebrew/bin/brew shellenv)"'
 # Alias for neo vim instead of vim
 alias vim='nvim'
 # alias docker='vessel'
-alias mosh-macstud='mosh-vpn macstud'
+# `mosh macstud` connects to the Mac Studio over VPN (asymmetric routing);
+# any other host falls through to the real mosh binary.
+mosh() {
+  if [[ "$1" == "macstud" ]]; then
+    mosh-vpn macstud
+  else
+    command mosh "$@"
+  fi
+}
 
 # Sync Claude Code's theme to the current macOS appearance before launching.
 # Claude Code reads `theme` from settings.json at startup; this keeps it in sync
@@ -258,3 +266,6 @@ setopt SHARE_HISTORY
 
 # Machine-local additions (gitignored corp config, work-specific paths, etc.)
 [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+# Keep ~/.local/bin (stow target for our bin/ scripts) in front of ALL paths,
+# winning over conda/rsvm/etc. that prepend earlier in this file.
+export PATH="$HOME/.local/bin:$PATH"
