@@ -190,7 +190,13 @@ install_prerequisites() {
         brew install ripgrep fzf npm lazygit
 
         # Install nvim plugin dependencies (snacks.nvim image support, picker)
-        brew install fd imagemagick ghostscript tectonic tree-sitter
+        brew install fd imagemagick tectonic tree-sitter
+
+        # ghostscript pulls in jbig2dec which is AGPL-3.0. Some environments
+        # forbid that (e.g. Apple's HOMEBREW_FORBIDDEN_LICENSES). It's only
+        # needed for PDF preview in snacks.nvim — tolerate failure.
+        brew install ghostscript || \
+            print_warning "Skipping ghostscript (license restricted). PDF preview in snacks.nvim will be unavailable."
 
         # Expose Ghostty CLI to PATH (needed for detection inside tmux)
         if [[ -x "/Applications/Ghostty.app/Contents/MacOS/ghostty" ]] && ! command_exists ghostty; then
