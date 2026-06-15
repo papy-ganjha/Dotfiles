@@ -1,2 +1,26 @@
 os:
   copyToClipboardCmd: "printf '%s' {{text}} | yank > \"$(tmux display-message -p '#{client_tty}' 2>/dev/null || echo /dev/tty)\""
+
+# Catppuccin Mocha palette. Lazygit has no light/dark switching;
+# swap these hex values for Latte if you prefer the light theme.
+gui:
+  theme:
+    activeBorderColor:
+      - "#a6e3a1"
+      - bold
+    inactiveBorderColor:
+      - "#7f849c"
+    optionsTextColor:
+      - "#89b4fa"
+    selectedLineBgColor:
+      - "#313244"
+    cherryPickedCommitFgColor:
+      - "#74c7ec"
+    cherryPickedCommitBgColor:
+      - "#f5c2e7"
+    unstagedChangesColor:
+      - "#f38ba8"
+    defaultFgColor:
+      - "#cdd6f4"
+    searchingActiveBorderColor:
+      - "#f9e2af"
