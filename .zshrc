@@ -79,8 +79,31 @@ alias vim='nvim'
 # alias docker='vessel'
 alias mosh-macstud='mosh-vpn macstud'
 
-# POETRY PATH
-export PATH="/Users/kenz/.local/bin:$PATH"
+# Sync Claude Code's theme to the current macOS appearance before launching.
+# Claude Code reads `theme` from settings.json at startup; this keeps it in sync
+# without touching the rest of the file (Apple corp config, hooks, etc.).
+claude() {
+  local theme
+  if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -qi dark; then
+    theme="dark"
+  else
+    theme="light"
+  fi
+  local settings="$HOME/.claude/settings.json"
+  if [[ -f "$settings" ]] && command -v jq >/dev/null 2>&1; then
+    local tmp
+    tmp=$(mktemp)
+    if jq --arg t "$theme" '.theme = $t' "$settings" > "$tmp"; then
+      mv "$tmp" "$settings"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+  command claude "$@"
+}
+
+# Local bin
+export PATH="$HOME/.local/bin:$PATH"
 
 ### GPTk
 # wine-gptk(){ WINEESYNC=1 WINEPREFIX=~/Documents/SteamPrefix $(brew --prefix game-porting-toolkit)/bin/wine64 "$@"; }
@@ -218,3 +241,20 @@ function _set_term_title_precmd() { print -Pn "\e]2;%~\a" }
 function _set_term_title_preexec() { print -Pn "\e]2;%~ \$ $1\a" }
 add-zsh-hook precmd _set_term_title_precmd
 add-zsh-hook preexec _set_term_title_preexec
+
+# gcloud SDK
+[[ -r "$(brew --prefix 2>/dev/null)/share/google-cloud-sdk/path.zsh.inc" ]] && \
+  source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+
+# uv env
+[[ -r "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+
+# Add ~/bin to PATH (where stow links bin/ scripts like theme-toggle)
+export PATH="$PATH:$HOME/bin"
+
+# Shared history across concurrent shells
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+
+# Machine-local additions (gitignored corp config, work-specific paths, etc.)
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
