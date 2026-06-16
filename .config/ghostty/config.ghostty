@@ -1,4 +1,4 @@
 clipboard-read = allow
 clipboard-write = allow
 # Catppuccin: Latte in light mode, Mocha in dark mode (follows macOS appearance)
-theme = light:Catppuccin Latte HC,dark:Catppuccin Mocha
+theme = light:Catppuccin Frappe,dark:Catppuccin Mocha
