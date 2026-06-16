@@ -1,2 +1,4 @@
-# Catppuccin: higher-contrast Latte in light mode, Mocha in dark mode (follows macOS appearance)
+clipboard-read = allow
+clipboard-write = allow
+# Catppuccin: Latte in light mode, Mocha in dark mode (follows macOS appearance)
 theme = light:Catppuccin Latte HC,dark:Catppuccin Mocha
