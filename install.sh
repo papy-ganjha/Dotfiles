@@ -404,6 +404,18 @@ setup_neovim() {
     print_info "Run 'nvim' and lazy.nvim will automatically install all plugins"
 }
 
+# Install modern tmux-256color terminfo so nvim uses synchronized output
+# (atomic frame redraws). Without this, heavy scrolling in nvim-inside-tmux
+# is visibly laggy on stock macOS/Linux installs.
+install_terminfo() {
+    print_info "Installing modern tmux-256color terminfo..."
+    if bash "$DOTFILES_DIR/scripts/install_modern_terminfo.sh"; then
+        print_success "Terminfo installed (restart tmux to apply: tmux kill-server)"
+    else
+        print_warning "Terminfo install failed; nvim+tmux scrolling may feel laggy"
+    fi
+}
+
 # Main installation flow
 main() {
     echo ""
@@ -420,6 +432,7 @@ main() {
     symlink_configs
     install_tpm
     setup_neovim
+    install_terminfo
 
     # macOS: lazygit defaults to ~/Library/Application Support/lazygit/
     # Symlink to the stow-managed XDG config location
