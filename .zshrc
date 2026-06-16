@@ -87,29 +87,6 @@ mosh() {
   fi
 }
 
-# Sync Claude Code's theme to the current macOS appearance before launching.
-# Claude Code reads `theme` from settings.json at startup; this keeps it in sync
-# without touching the rest of the file (Apple corp config, hooks, etc.).
-claude() {
-  local theme
-  if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -qi dark; then
-    theme="dark"
-  else
-    theme="light"
-  fi
-  local settings="$HOME/.claude/settings.json"
-  if [[ -f "$settings" ]] && command -v jq >/dev/null 2>&1; then
-    local tmp
-    tmp=$(mktemp)
-    if jq --arg t "$theme" '.theme = $t' "$settings" > "$tmp"; then
-      mv "$tmp" "$settings"
-    else
-      rm -f "$tmp"
-    fi
-  fi
-  command claude "$@"
-}
-
 # Local bin
 export PATH="$HOME/.local/bin:$PATH"
 
