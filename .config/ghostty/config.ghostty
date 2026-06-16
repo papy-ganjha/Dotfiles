@@ -1,0 +1,2 @@
+# Catppuccin: Latte in light mode, Mocha in dark mode (follows macOS appearance)
+theme = light:Catppuccin Latte,dark:Catppuccin Mocha
