@@ -190,7 +190,7 @@ install_prerequisites() {
         brew install ripgrep fzf npm lazygit
 
         # Install nvim plugin dependencies (snacks.nvim image support, picker)
-        brew install fd imagemagick tectonic tree-sitter
+        brew install fd imagemagick tectonic tree-sitter tree-sitter-cli
 
         # ghostscript pulls in jbig2dec which is AGPL-3.0. Some environments
         # forbid that (e.g. Apple's HOMEBREW_FORBIDDEN_LICENSES). It's only
