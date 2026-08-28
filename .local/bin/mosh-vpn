@@ -45,20 +45,25 @@ fi
 # Background port-forward: remote localhost:8791 -> local 8791. mosh can't
 # forward ports (terminal only), so this rides a separate SSH connection.
 # autossh -f daemonizes it and keeps it alive across roaming; it persists in
-# the background, independent of the mosh session. Started only if 8791 isn't
-# already forwarded locally. Stop it later with:  pkill -f 'autossh.*8791'
-# ClearAllForwardings + explicit -L avoids a duplicate bind with the config's
-# own "LocalForward 8791" entry.
+# the background, independent of the mosh session. It relies on the config's
+# "LocalForward 8791 localhost:8791" entry -- do NOT add ClearAllForwardings
+# here (it would also wipe that forward) or a second explicit -L (duplicate
+# bind). ControlMaster=no makes autossh open its own connection rather than
+# reuse a stale master. Stop it later with:  pkill -f 'autossh.*macstud'
 if lsof -nP -iTCP:8791 -sTCP:LISTEN >/dev/null 2>&1; then
     echo "mosh-vpn: local 8791 already forwarded; leaving it." >&2
-elif AUTOSSH_GATETIME=0 autossh -M 0 -f -N \
+else
+    # Clear any stuck/stale forwarder that's running but not bound (otherwise
+    # each reconnect piles up another autossh instead of fixing the forward).
+    pkill -f 'autossh.*macstud' 2>/dev/null && sleep 1
+    if AUTOSSH_GATETIME=0 autossh -M 0 -f -N \
         -o ProxyCommand=none -o ControlMaster=no -o ControlPath=none \
         -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-        -o ExitOnForwardFailure=yes -o ConnectTimeout=15 \
-        -o ClearAllForwardings=yes -L 8791:localhost:8791 "$HOST"; then
-    echo "mosh-vpn: forwarding local 8791 -> $HOST:8791 (background)" >&2
-else
-    echo "mosh-vpn: port-forward failed to start (8791)." >&2
+        -o ExitOnForwardFailure=yes -o ConnectTimeout=15 "$HOST"; then
+        echo "mosh-vpn: forwarding local 8791 -> $HOST:8791 (background)" >&2
+    else
+        echo "mosh-vpn: port-forward failed to start (8791)." >&2
+    fi
 fi
 
 echo "mosh-vpn: connecting to $respond_ip:$port" >&2
