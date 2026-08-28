@@ -44,12 +44,16 @@ return {
   -- Telescope removed in favor of snacks.picker
 
   -- Treesitter
+  -- `branch = "main"` est obligatoire : la branche par défaut du dépôt est
+  -- `master`, figée et incompatible avec Neovim 0.12. `main` ne supporte pas
+  -- le lazy-loading, d'où `lazy = false` et l'absence d'`event`.
   {
     "nvim-treesitter/nvim-treesitter",
-    event = { "BufReadPost", "BufNewFile" },
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
     dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
+      { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
     },
     config = function()
       require("kenzb.configs.treesitter")
