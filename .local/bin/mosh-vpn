@@ -1,17 +1,32 @@
 #!/bin/bash
 # Connect to the Mac Studio via mosh over the corp VPN.
 #
-# Asymmetric routing: the Mac Studio RECEIVES on the IP the client dialed
-# (e.g. 17.192.201.28) but, with mosh-server bound to 0.0.0.0, it REPLIES from
-# whatever source the kernel picks to route back to the client -- its ipsec0
-# address (e.g. 17.233.28.174). mosh-client uses a connected UDP socket, so it
-# only accepts replies from the IP it connected to. Therefore the client must
-# connect to that route-back IP, which we detect at runtime on the server.
-# (Verified with a round-trip echo: connecting to the route-back IP yields a
-# reply whose source matches; connecting to the dialed SSH IP does not.)
+# Asymmetric routing: the Mac Studio RECEIVES on the IP the client dialed (its
+# en0 corp address, e.g. 17.192.201.28) but REPLIES from its own VPN tunnel
+# address (ipsec0, e.g. 17.233.22.110), because it routes back to a VPN-pool
+# client through its own tunnel and the concentrator only accepts that source.
+# mosh-client uses a connected UDP socket, so it drops replies from any other
+# address. Measured matrix (echo server on the Studio, probed from the client):
+#
+#   server bind      client dst        result
+#   0.0.0.0          17.192.201.28     reply arrives, source 17.233.22.110
+#   0.0.0.0          17.233.22.110     no reply -- concentrator no longer
+#                                      hairpins VPN-client to VPN-client
+#   17.192.201.28    17.192.201.28     no reply -- tunnel anti-spoof drops a
+#                                      packet sourced from the en0 address
+#
+# So the only working path is inherently asymmetric, and neither "connect to the
+# route-back IP" (used to work, the hairpin is now closed) nor "bind the server
+# to the dialed IP" can fix it. Instead mosh-udp-relay makes the asymmetry
+# invisible: mosh-client talks to 127.0.0.1 and the relay forwards outward on an
+# unconnected socket, which accepts the reply whatever source it carries.
+#
+# If the server ever routes back over en0 (e.g. its own VPN is off), the paths
+# are symmetric and we skip the relay and connect straight to the dialed IP.
 
 HOST="${1:-macstud}"
 SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
+RELAY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mosh-udp-relay"
 
 # Fresh, isolated SSH for the bootstrap:
 #  - ControlMaster=no / ControlPath=none : never reuse a persistent master,
@@ -21,23 +36,25 @@ SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
 SSH_OPTS=(-o ProxyCommand=none -o ConnectTimeout=15
           -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes)
 
-# Remote: find the source IP the server uses to route back to this SSH client,
-# then start mosh-server -- same session, so the detected IP matches the route
-# mosh's UDP replies will take.
+# Remote: report both ends of the path -- the IP we dialed (which is where UDP
+# must be sent) and the source the server will reply from -- then start
+# mosh-server in the same session, so the detection matches the live route.
 remote_script='
 client_ip=${SSH_CONNECTION%% *}
+echo "DIALED_IP=$(echo "$SSH_CONNECTION" | awk "{print \$3}")"
 iface=$(route -n get "$client_ip" 2>/dev/null | awk "/interface:/ {print \$2}")
 echo "RESPOND_IP=$(ifconfig "$iface" 2>/dev/null | awk "/inet /{print \$2; exit}")"
 '"$SERVER_CMD"
 
 output=$(ssh "${SSH_OPTS[@]}" "$HOST" "$remote_script" 2>/dev/null)
+dialed_ip=$(echo "$output" | sed -n 's/^DIALED_IP=//p')
 respond_ip=$(echo "$output" | sed -n 's/^RESPOND_IP=//p')
 connect_line=$(echo "$output" | grep "MOSH CONNECT")
 port=$(echo "$connect_line" | awk '{print $3}')
 key=$(echo "$connect_line" | awk '{print $4}')
 
-if [ -z "$key" ] || [ -z "$port" ] || [ -z "$respond_ip" ]; then
-    echo "mosh-vpn: failed to start mosh-server or detect respond IP." >&2
+if [ -z "$key" ] || [ -z "$port" ] || [ -z "$dialed_ip" ]; then
+    echo "mosh-vpn: failed to start mosh-server or detect the dialed IP." >&2
     echo "$output" >&2
     exit 1
 fi
@@ -66,5 +83,40 @@ else
     fi
 fi
 
-echo "mosh-vpn: connecting to $respond_ip:$port" >&2
-exec env MOSH_KEY="$key" mosh-client "$respond_ip" "$port"
+# Symmetric path (server replies from the address we dialed): no relay needed.
+if [ "$respond_ip" = "$dialed_ip" ]; then
+    echo "mosh-vpn: symmetric route; connecting to $dialed_ip:$port" >&2
+    exec env MOSH_KEY="$key" mosh-client "$dialed_ip" "$port"
+fi
+
+# Asymmetric path: relay on loopback so mosh-client sees one stable peer.
+# Safe to run many sessions at once: the relay takes an ephemeral loopback port
+# and an ephemeral outward port, so concurrent instances never collide, and each
+# one dies with its own session. Strays, if ever: pkill -f mosh-udp-relay
+relay_log=$(mktemp -t mosh-vpn-relay)
+"$RELAY" "$dialed_ip" "$port" >"$relay_log" 2>&1 &
+relay_pid=$!
+
+listen_port=""
+for _ in $(seq 50); do
+    listen_port=$(sed -n 's/^LISTEN_PORT=//p' "$relay_log")
+    [ -n "$listen_port" ] && break
+    kill -0 "$relay_pid" 2>/dev/null || break
+    sleep 0.1
+done
+
+if [ -z "$listen_port" ]; then
+    echo "mosh-vpn: UDP relay failed to start." >&2
+    cat "$relay_log" >&2
+    kill "$relay_pid" 2>/dev/null
+    rm -f "$relay_log"
+    exit 1
+fi
+rm -f "$relay_log"
+
+echo "mosh-vpn: relaying 127.0.0.1:$listen_port -> $dialed_ip:$port" \
+     "(server replies from ${respond_ip:-another address})" >&2
+
+# exec keeps this PID, so the relay's parent-process watchdog sees the session
+# end and exits on its own -- nothing is left behind if mosh-client dies hard.
+exec env MOSH_KEY="$key" mosh-client 127.0.0.1 "$listen_port"

@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Loopback UDP relay that hides asymmetric VPN routing from mosh-client.
+
+The corp VPN forces an asymmetric path to the Mac Studio: packets must be SENT
+to the IP we dialed over SSH (its en0 corp address), but the server's replies
+come back from its own tunnel address (ipsec0), because that is the only source
+the concentrator will accept from it. mosh-client uses a *connected* UDP socket,
+so it drops every reply whose source differs from the address it connected to.
+
+This relay sits in the middle:
+
+    mosh-client <--127.0.0.1--> relay <--unconnected socket--> server
+
+mosh-client sees a single, stable peer on loopback. The outward socket is
+unconnected, so it accepts the reply no matter which server address it carries.
+Roaming still works: the outward socket is bound to the wildcard address, so its
+source IP follows the routing table when the VPN reassigns our address, and
+mosh-server re-targets to whatever address it last heard from.
+
+Prints "LISTEN_PORT=<n>" on stdout once ready, then relays until its parent
+process exits. Designed for many concurrent sessions: both sockets take
+ephemeral ports so instances never collide, state is one address plus one fixed
+buffer (no queues, so memory does not grow with traffic), and an idle reaper
+catches any instance that somehow outlives its session.
+
+Stray instances, if you ever want to check:  pgrep -fl mosh-udp-relay
+"""
+
+import os
+import selectors
+import socket
+import sys
+import time
+
+BUFSIZE = 65535
+
+# Wake-up period while idle. Bounds how long after a session ends the process
+# lingers; traffic is handled immediately regardless, since select() returns as
+# soon as a datagram lands.
+POLL_SECONDS = 5.0
+
+# Reap an orphan that kept its parent (e.g. a stopped shell). mosh-client sends
+# keepalives every few seconds and the client side is pure loopback, which does
+# not break during a network outage -- so silence here means mosh-client is gone,
+# not that the VPN dropped. Deliberately not applied to the server side: a long
+# outage must NOT tear down the relay, that is exactly what mosh exists for.
+CLIENT_IDLE_TIMEOUT = 300.0
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit("usage: mosh-udp-relay <server-ip> <server-port>")
+    server_ip = sys.argv[1]
+    server_port = int(sys.argv[2])
+    server = (server_ip, server_port)
+
+    # Outward: unconnected, so replies from any server address are accepted.
+    # Wildcard bind keeps the source IP following the routing table across roams.
+    up = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    up.bind(("0.0.0.0", 0))
+
+    # Inward: loopback only, ephemeral port. This is the peer mosh-client dials.
+    down = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    down.bind(("127.0.0.1", 0))
+
+    print("LISTEN_PORT=%d" % down.getsockname()[1], flush=True)
+
+    sel = selectors.DefaultSelector()
+    sel.register(down, selectors.EVENT_READ, "down")
+    sel.register(up, selectors.EVENT_READ, "up")
+
+    parent = os.getppid()
+    client_addr = None
+    last_client = time.monotonic()
+
+    while True:
+        # The wrapper execs mosh-client, so our ppid stays valid for the life of
+        # the session and reparents to 1 (launchd) the moment it exits.
+        if os.getppid() != parent:
+            return
+        if time.monotonic() - last_client > CLIENT_IDLE_TIMEOUT:
+            return
+
+        for key, _ in sel.select(timeout=POLL_SECONDS):
+            if key.data == "down":
+                data, addr = down.recvfrom(BUFSIZE)
+                if addr[0] != "127.0.0.1":
+                    continue
+                client_addr = addr
+                last_client = time.monotonic()
+                try:
+                    up.sendto(data, server)
+                except OSError:
+                    # Transient "no route to host" while the VPN re-establishes:
+                    # mosh retransmits, so dropping this datagram is harmless.
+                    pass
+            else:
+                data, addr = up.recvfrom(BUFSIZE)
+                # mosh-server is bound to 0.0.0.0:<server_port>, so its replies
+                # always carry that source port whichever address they use.
+                if addr[1] != server_port or client_addr is None:
+                    continue
+                try:
+                    down.sendto(data, client_addr)
+                except OSError:
+                    pass
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
