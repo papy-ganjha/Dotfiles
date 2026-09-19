@@ -1,12 +1,16 @@
 #!/bin/bash
-# Connect to the Mac Studio via mosh over the corp VPN.
+# Connect to a host via mosh over the corp VPN, working around asymmetric
+# routing.  Usage: mosh-vpn [ssh-host]     (default: macstud)
 #
-# Asymmetric routing: the Mac Studio RECEIVES on the IP the client dialed (its
-# en0 corp address, e.g. 17.192.201.28) but REPLIES from its own VPN tunnel
-# address (ipsec0, e.g. 17.233.22.110), because it routes back to a VPN-pool
-# client through its own tunnel and the concentrator only accepts that source.
-# mosh-client uses a connected UDP socket, so it drops replies from any other
-# address. Measured matrix (echo server on the Studio, probed from the client):
+# The host is any name from ~/.ssh/config; nothing here is specific to one
+# machine. Port forwarding is taken from that host's own LocalForward entries.
+#
+# Asymmetric routing: the server RECEIVES on the IP the client dialed (its en0
+# corp address, e.g. 17.192.201.28 for macstud) but REPLIES from its own VPN
+# tunnel address (ipsec0, e.g. 17.233.22.110), because it routes back to a
+# VPN-pool client through its own tunnel and the concentrator only accepts that
+# source. mosh-client uses a connected UDP socket, so it drops replies from any
+# other address. Measured matrix (echo server on the Studio, probed from here):
 #
 #   server bind      client dst        result
 #   0.0.0.0          17.192.201.28     reply arrives, source 17.233.22.110
@@ -21,18 +25,32 @@
 # invisible: mosh-client talks to 127.0.0.1 and the relay forwards outward on an
 # unconnected socket, which accepts the reply whatever source it carries.
 #
-# If the server ever routes back over en0 (e.g. its own VPN is off), the paths
-# are symmetric and we skip the relay and connect straight to the dialed IP.
+# If a host routes back over en0 (e.g. its own VPN is off), the paths are
+# symmetric and we skip the relay and connect straight to the dialed IP.
 
 HOST="${1:-macstud}"
 SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
-RELAY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mosh-udp-relay"
+
+# Find mosh-udp-relay next to this script, following the stow symlink chain
+# (~/.local/bin/mosh-vpn -> the repo), then fall back to PATH.
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+    self_dir=$(cd -P "$(dirname "$self")" && pwd)
+    self=$(readlink "$self")
+    case "$self" in /*) ;; *) self="$self_dir/$self" ;; esac
+done
+RELAY="$(cd -P "$(dirname "$self")" && pwd)/mosh-udp-relay"
+[ -x "$RELAY" ] || RELAY=$(command -v mosh-udp-relay)
+if [ ! -x "$RELAY" ]; then
+    echo "mosh-vpn: mosh-udp-relay not found (stow the dotfiles repo?)." >&2
+    exit 1
+fi
 
 # Fresh, isolated SSH for the bootstrap:
 #  - ControlMaster=no / ControlPath=none : never reuse a persistent master,
 #    which goes stale when the VPN roams and yields "broken pipe".
-#  - ClearAllForwardings=yes : don't inherit the config's LocalForward 8791,
-#    which collides ("address already in use") with a lingering session.
+#  - ClearAllForwardings=yes : don't inherit the config's LocalForward entries,
+#    which collide ("address already in use") with a lingering session.
 SSH_OPTS=(-o ProxyCommand=none -o ConnectTimeout=15
           -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes)
 
@@ -59,27 +77,48 @@ if [ -z "$key" ] || [ -z "$port" ] || [ -z "$dialed_ip" ]; then
     exit 1
 fi
 
-# Background port-forward: remote localhost:8791 -> local 8791. mosh can't
-# forward ports (terminal only), so this rides a separate SSH connection.
-# autossh -f daemonizes it and keeps it alive across roaming; it persists in
-# the background, independent of the mosh session. It relies on the config's
-# "LocalForward 8791 localhost:8791" entry -- do NOT add ClearAllForwardings
-# here (it would also wipe that forward) or a second explicit -L (duplicate
-# bind). ControlMaster=no makes autossh open its own connection rather than
-# reuse a stale master. Stop it later with:  pkill -f 'autossh.*macstud'
-if lsof -nP -iTCP:8791 -sTCP:LISTEN >/dev/null 2>&1; then
-    echo "mosh-vpn: local 8791 already forwarded; leaving it." >&2
+# Background port-forward for whatever this host's ssh config asks to forward.
+# mosh can't forward ports (terminal only), so this rides a separate SSH
+# connection. autossh -f daemonizes it and keeps it alive across roaming; it
+# persists in the background, independent of the mosh session. It relies on the
+# config's own "LocalForward" entries -- do NOT add ClearAllForwardings here (it
+# would also wipe those) or an explicit -L (duplicate bind). ControlMaster=no
+# makes autossh open its own connection rather than reuse a stale master.
+# Per-host, so several hosts can each keep their own forwards.
+# Stop one later with:  pkill -f "autossh.* $HOST\$"
+#
+# ssh -G prints "localforward <bind:port> <[host]:port>"; take the local port,
+# tolerating both "8791" and "[127.0.0.1]:8791" spellings of field 2.
+local_ports=$(ssh -G "$HOST" 2>/dev/null |
+              awk '/^localforward /{p=$2; sub(/.*:/, "", p); gsub(/[][]/, "", p); print p}')
+
+if [ -z "$local_ports" ]; then
+    echo "mosh-vpn: no LocalForward configured for $HOST; skipping forwards." >&2
 else
-    # Clear any stuck/stale forwarder that's running but not bound (otherwise
-    # each reconnect piles up another autossh instead of fixing the forward).
-    pkill -f 'autossh.*macstud' 2>/dev/null && sleep 1
-    if AUTOSSH_GATETIME=0 autossh -M 0 -f -N \
-        -o ProxyCommand=none -o ControlMaster=no -o ControlPath=none \
-        -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-        -o ExitOnForwardFailure=yes -o ConnectTimeout=15 "$HOST"; then
-        echo "mosh-vpn: forwarding local 8791 -> $HOST:8791 (background)" >&2
+    unbound=""
+    for p in $local_ports; do
+        lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1 || unbound="$unbound $p"
+    done
+
+    if [ -z "$unbound" ]; then
+        echo "mosh-vpn: local port(s)$(printf ' %s' $local_ports) already" \
+             "forwarded; leaving them." >&2
     else
-        echo "mosh-vpn: port-forward failed to start (8791)." >&2
+        # Clear any stuck/stale forwarder for THIS host that's running but not
+        # bound (otherwise each reconnect piles up another autossh instead of
+        # fixing the forward). Anchored on the host so other hosts' forwarders
+        # survive.
+        pkill -f "autossh.* $HOST\$" 2>/dev/null && sleep 1
+        if AUTOSSH_GATETIME=0 autossh -M 0 -f -N \
+            -o ProxyCommand=none -o ControlMaster=no -o ControlPath=none \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            -o ExitOnForwardFailure=yes -o ConnectTimeout=15 "$HOST"; then
+            echo "mosh-vpn: forwarding local port(s)$unbound -> $HOST" \
+                 "(background)" >&2
+        else
+            echo "mosh-vpn: port-forward failed to start ($unbound)." \
+                 "Another host may already hold those ports." >&2
+        fi
     fi
 fi
 

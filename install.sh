@@ -189,6 +189,10 @@ install_prerequisites() {
         # Install additional dependencies
         brew install ripgrep fzf npm lazygit
 
+        # Remote sessions: mosh-vpn (.local/bin) needs both, autossh for the
+        # background port-forward that mosh itself can't carry.
+        brew install mosh autossh
+
         # Install nvim plugin dependencies (snacks.nvim image support, picker)
         brew install fd imagemagick tectonic tree-sitter tree-sitter-cli
 
@@ -212,6 +216,10 @@ install_prerequisites() {
 
         # Install additional dependencies
         sudo apt-get install -y ripgrep fzf npm
+
+        # Remote sessions: mosh-vpn (.local/bin) needs both, autossh for the
+        # background port-forward that mosh itself can't carry.
+        sudo apt-get install -y mosh autossh
 
         # Install lazygit (not in default repos, use PPA or binary)
         if ! command_exists lazygit; then
