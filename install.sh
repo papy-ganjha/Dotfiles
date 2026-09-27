@@ -189,6 +189,24 @@ install_prerequisites() {
         # Install additional dependencies
         brew install ripgrep fzf npm lazygit
 
+        # Remote sessions: mosh-vpn (.local/bin) needs both, autossh for the
+        # background port-forward that mosh itself can't carry.
+        brew install mosh autossh
+
+        # Install nvim plugin dependencies (snacks.nvim image support, picker)
+        brew install fd imagemagick tectonic tree-sitter tree-sitter-cli
+
+        # ghostscript pulls in jbig2dec which is AGPL-3.0. Some environments
+        # forbid that (e.g. Apple's HOMEBREW_FORBIDDEN_LICENSES). It's only
+        # needed for PDF preview in snacks.nvim — tolerate failure.
+        brew install ghostscript || \
+            print_warning "Skipping ghostscript (license restricted). PDF preview in snacks.nvim will be unavailable."
+
+        # Expose Ghostty CLI to PATH (needed for detection inside tmux)
+        if [[ -x "/Applications/Ghostty.app/Contents/MacOS/ghostty" ]] && ! command_exists ghostty; then
+            sudo ln -sf /Applications/Ghostty.app/Contents/MacOS/ghostty /usr/local/bin/ghostty
+        fi
+
     elif [[ "$OS" == "linux" ]]; then
         # Update package list
         sudo apt-get update
@@ -198,6 +216,10 @@ install_prerequisites() {
 
         # Install additional dependencies
         sudo apt-get install -y ripgrep fzf npm
+
+        # Remote sessions: mosh-vpn (.local/bin) needs both, autossh for the
+        # background port-forward that mosh itself can't carry.
+        sudo apt-get install -y mosh autossh
 
         # Install lazygit (not in default repos, use PPA or binary)
         if ! command_exists lazygit; then
@@ -390,6 +412,18 @@ setup_neovim() {
     print_info "Run 'nvim' and lazy.nvim will automatically install all plugins"
 }
 
+# Install modern tmux-256color terminfo so nvim uses synchronized output
+# (atomic frame redraws). Without this, heavy scrolling in nvim-inside-tmux
+# is visibly laggy on stock macOS/Linux installs.
+install_terminfo() {
+    print_info "Installing modern tmux-256color terminfo..."
+    if bash "$DOTFILES_DIR/scripts/install_modern_terminfo.sh"; then
+        print_success "Terminfo installed (restart tmux to apply: tmux kill-server)"
+    else
+        print_warning "Terminfo install failed; nvim+tmux scrolling may feel laggy"
+    fi
+}
+
 # Main installation flow
 main() {
     echo ""
@@ -406,6 +440,7 @@ main() {
     symlink_configs
     install_tpm
     setup_neovim
+    install_terminfo
 
     # macOS: lazygit defaults to ~/Library/Application Support/lazygit/
     # Symlink to the stow-managed XDG config location

@@ -1,0 +1,11 @@
+#!/bin/bash
+set -eu
+
+# OSC 52 clipboard: streams stdin through base64 into an OSC52 escape sequence.
+# Caller redirects stdout to the target terminal (e.g., #{client_tty}).
+# Uses a pipeline — never buffers the full content in a shell variable.
+
+maxlen=74994
+
+encoded=$(head -c "$maxlen" | base64 | tr -d '\r\n')
+printf '\033]52;c;%s\a' "$encoded"

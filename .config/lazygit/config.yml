@@ -1,2 +1,27 @@
 os:
-  copyToClipboardCmd: "printf '\\033]52;c;%s\\a' $(printf '%s' {{text}} | base64 | tr -d '\\n') > $(tmux display-message -p '#{pane_tty}' 2>/dev/null || echo /dev/tty)"
+  copyToClipboardCmd: "printf '%s' {{text}} | yank > \"$(tmux display-message -p '#{client_tty}' 2>/dev/null || echo /dev/tty)\""
+
+# Use ANSI color names (not hex) so the theme adapts to the terminal's
+# current palette — readable in both Catppuccin Latte and Mocha.
+gui:
+  theme:
+    activeBorderColor:
+      - green
+      - bold
+    inactiveBorderColor:
+      - default
+    optionsTextColor:
+      - blue
+    selectedLineBgColor:
+      - default
+      - reverse
+    cherryPickedCommitFgColor:
+      - cyan
+    cherryPickedCommitBgColor:
+      - default
+    unstagedChangesColor:
+      - red
+    defaultFgColor:
+      - default
+    searchingActiveBorderColor:
+      - yellow

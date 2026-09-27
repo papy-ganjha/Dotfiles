@@ -40,38 +40,20 @@ return {
     end,
   },
 
-  -- Fuzzy finder
-  {
-    "nvim-telescope/telescope.nvim",
-    branch = "0.1.x",
-    cmd = "Telescope",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      {
-        "nvim-telescope/telescope-fzf-native.nvim",
-        build = "make",
-      },
-      "nvim-tree/nvim-web-devicons",
-    },
-    keys = {
-      { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find files" },
-      { "<leader>fs", "<cmd>Telescope live_grep<cr>", desc = "Live grep" },
-      { "<leader>fc", "<cmd>Telescope grep_string<cr>", desc = "Grep string" },
-      { "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
-      { "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help tags" },
-    },
-    config = function()
-      require("kenzb.configs.telescope")
-    end,
-  },
+  -- Fuzzy finder (using Snacks picker)
+  -- Telescope removed in favor of snacks.picker
 
   -- Treesitter
+  -- `branch = "main"` est obligatoire : la branche par défaut du dépôt est
+  -- `master`, figée et incompatible avec Neovim 0.12. `main` ne supporte pas
+  -- le lazy-loading, d'où `lazy = false` et l'absence d'`event`.
   {
     "nvim-treesitter/nvim-treesitter",
-    event = { "BufReadPost", "BufNewFile" },
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
     dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
+      { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
     },
     config = function()
       require("kenzb.configs.treesitter")
@@ -81,7 +63,7 @@ return {
   -- Git signs
   {
     "lewis6991/gitsigns.nvim",
-    event = { "BufReadPost", "BufNewFile" },
+    event = "VeryLazy",
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()
       require("kenzb.configs.gitsigns")
@@ -155,25 +137,130 @@ return {
     end,
   },
 
-  -- OSC 52 clipboard support for SSH sessions
+  -- Claude Code integration
   {
-    "ojroques/nvim-osc52",
-    event = { "BufReadPost", "BufNewFile" },
-    config = function()
-      require('osc52').setup({
-        max_length = 0,           -- Maximum length of selection (0 for no limit)
-        silent = false,           -- Disable message on successful copy
-        trim = false,             -- Trim surrounding whitespaces before copy
-      })
-
-      -- Automatically copy to clipboard on any yank
-      vim.api.nvim_create_autocmd('TextYankPost', {
-        callback = function()
-          if vim.v.event.operator == 'y' then
-            require('osc52').copy_register('"')
-          end
+    "coder/claudecode.nvim",
+    dependencies = { "folke/snacks.nvim" },
+    opts = {
+      terminal_cmd = vim.fn.expand("~/.local/bin/claude"),
+      terminal = {
+        split_side = "right",
+        snacks_win_opts = {
+          position = "bottom",
+          height = 0.3,
+          keys = {
+            nav_h = { "<C-h>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateLeft")
+            end, mode = "t", desc = "Navigate left" },
+            nav_j = { "<C-j>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateDown")
+            end, mode = "t", desc = "Navigate down" },
+            nav_k = { "<C-k>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
+              vim.cmd("stopinsert")
+              vim.cmd("wincmd p")
+            end, mode = "t", desc = "Navigate to previous window" },
+            nav_l = { "<C-l>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(0, math.floor(total * 0.3))
+              end
+              vim.cmd("stopinsert")
+              vim.cmd("TmuxNavigateRight")
+            end, mode = "t", desc = "Navigate right" },
+            maximize = { "<C-f>", function()
+              if vim.g.claude_maximized then
+                vim.g.claude_maximized = false
+                vim.cmd("wincmd =")
+                local win = vim.api.nvim_get_current_win()
+                local total = vim.o.lines
+                vim.api.nvim_win_set_height(win, math.floor(total * 0.3))
+              else
+                vim.g.claude_maximized = true
+                vim.cmd("wincmd _")
+                vim.cmd("wincmd |")
+              end
+              vim.defer_fn(function()
+                local buf = vim.api.nvim_get_current_buf()
+                local chan = vim.bo[buf].channel
+                if chan and chan > 0 then
+                  local win = vim.api.nvim_get_current_win()
+                  local height = vim.api.nvim_win_get_height(win)
+                  local width = vim.api.nvim_win_get_width(win)
+                  vim.fn.jobresize(chan, width, height)
+                end
+              end, 50)
+            end, mode = "t", desc = "Toggle maximize terminal" },
+          },
+        },
+      },
+    },
+    keys = {
+      { "<leader>a", nil, desc = "AI/Claude Code" },
+      { "<leader>ac", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
         end
-      })
-    end,
+        vim.cmd("ClaudeCode")
+      end, desc = "Toggle Claude" },
+      { "<leader>af", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
+      { "<leader>ar", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --resume")
+      end, desc = "Resume Claude" },
+      { "<leader>aC", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --continue")
+      end, desc = "Continue Claude" },
+      { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
+      { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },
+      { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
+      {
+        "<leader>as",
+        "<cmd>ClaudeCodeTreeAdd<cr>",
+        desc = "Add file",
+        ft = { "NvimTree", "neo-tree", "oil", "minifiles", "netrw" },
+      },
+      { "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
+      { "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
+      { "<leader>ay", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --dangerously-skip-permissions")
+      end, desc = "Claude (skip permissions)" },
+      { "<leader>aY", function()
+        for _, t in ipairs(Snacks.terminal.list()) do
+          if t:win_valid() then t:hide() end
+        end
+        vim.cmd("ClaudeCode --continue --dangerously-skip-permissions")
+      end, desc = "Continue Claude (skip permissions)" },
+    },
   },
+
 }

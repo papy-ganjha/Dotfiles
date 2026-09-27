@@ -169,7 +169,7 @@ lspconfig.pyright = {
   capabilities = capabilities,
   settings = {
     python = {
-      pythonPath = vim.fn.exepath("python"),
+      pythonPath = (vim.env.VIRTUAL_ENV and vim.env.VIRTUAL_ENV .. "/bin/python") or vim.fn.exepath("python"),
       analysis = {
         -- Enable auto-import completions for symbols not yet imported
         autoImportCompletions = true,

@@ -35,14 +35,15 @@ return {
     "jay-babu/mason-null-ls.nvim",
     event = { "BufReadPost", "BufNewFile" },
     dependencies = {
-      "williamboman/mason.nvim",
-      "jose-elias-alvarez/null-ls.nvim",
+      "mason-org/mason.nvim",
+      "nvimtools/none-ls.nvim",
     },
   },
 
-  -- Null-ls for formatting and linting
+  -- Null-ls (maintained fork: none-ls) for formatting and linting
   {
-    "jose-elias-alvarez/null-ls.nvim",
+    "nvimtools/none-ls.nvim",
+    branch = "main",
     event = { "BufReadPost", "BufNewFile" },
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()

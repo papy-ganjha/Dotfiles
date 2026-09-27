@@ -77,9 +77,18 @@ alias brew_switch_arm='eval "$(/opt/homebrew/bin/brew shellenv)"'
 # Alias for neo vim instead of vim
 alias vim='nvim'
 # alias docker='vessel'
+# `mosh macstud` connects to the Mac Studio over VPN (asymmetric routing);
+# any other host falls through to the real mosh binary.
+mosh() {
+  if [[ "$1" == "macstud" ]]; then
+    mosh-vpn macstud
+  else
+    command mosh "$@"
+  fi
+}
 
-# POETRY PATH
-export PATH="/Users/kenz/.local/bin:$PATH"
+# Local bin
+export PATH="$HOME/.local/bin:$PATH"
 
 ### GPTk
 # wine-gptk(){ WINEESYNC=1 WINEPREFIX=~/Documents/SteamPrefix $(brew --prefix game-porting-toolkit)/bin/wine64 "$@"; }
@@ -209,3 +218,31 @@ function kube-update-setting-keys() {
         --save-config --dry-run=client --from-file $1 -o yaml \
         | kubectl apply -f -
 }
+
+# Set terminal title (cwd before prompt, cwd + command while running)
+# Useful for nvim's :terminal which exposes term_title
+autoload -Uz add-zsh-hook
+function _set_term_title_precmd() { print -Pn "\e]2;%~\a" }
+function _set_term_title_preexec() { print -Pn "\e]2;%~ \$ $1\a" }
+add-zsh-hook precmd _set_term_title_precmd
+add-zsh-hook preexec _set_term_title_preexec
+
+# gcloud SDK
+[[ -r "$(brew --prefix 2>/dev/null)/share/google-cloud-sdk/path.zsh.inc" ]] && \
+  source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+
+# uv env
+[[ -r "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+
+# Add ~/bin to PATH (where stow links bin/ scripts like theme-toggle)
+export PATH="$PATH:$HOME/bin"
+
+# Shared history across concurrent shells
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+
+# Machine-local additions (gitignored corp config, work-specific paths, etc.)
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+# Keep ~/.local/bin (stow target for our bin/ scripts) in front of ALL paths,
+# winning over conda/rsvm/etc. that prepend earlier in this file.
+export PATH="$HOME/.local/bin:$PATH"

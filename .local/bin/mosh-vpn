@@ -1,0 +1,161 @@
+#!/bin/bash
+# Connect to a host via mosh over the corp VPN, working around asymmetric
+# routing.  Usage: mosh-vpn [ssh-host]     (default: macstud)
+#
+# The host is any name from ~/.ssh/config; nothing here is specific to one
+# machine. Port forwarding is taken from that host's own LocalForward entries.
+#
+# Asymmetric routing: the server RECEIVES on the IP the client dialed (its en0
+# corp address, e.g. 17.192.201.28 for macstud) but REPLIES from its own VPN
+# tunnel address (ipsec0, e.g. 17.233.22.110), because it routes back to a
+# VPN-pool client through its own tunnel and the concentrator only accepts that
+# source. mosh-client uses a connected UDP socket, so it drops replies from any
+# other address. Measured matrix (echo server on the Studio, probed from here):
+#
+#   server bind      client dst        result
+#   0.0.0.0          17.192.201.28     reply arrives, source 17.233.22.110
+#   0.0.0.0          17.233.22.110     no reply -- concentrator no longer
+#                                      hairpins VPN-client to VPN-client
+#   17.192.201.28    17.192.201.28     no reply -- tunnel anti-spoof drops a
+#                                      packet sourced from the en0 address
+#
+# So the only working path is inherently asymmetric, and neither "connect to the
+# route-back IP" (used to work, the hairpin is now closed) nor "bind the server
+# to the dialed IP" can fix it. Instead mosh-udp-relay makes the asymmetry
+# invisible: mosh-client talks to 127.0.0.1 and the relay forwards outward on an
+# unconnected socket, which accepts the reply whatever source it carries.
+#
+# If a host routes back over en0 (e.g. its own VPN is off), the paths are
+# symmetric and we skip the relay and connect straight to the dialed IP.
+
+HOST="${1:-macstud}"
+SERVER_CMD="mosh-server new -i 0.0.0.0 -c 256 -l LANG=en_US.UTF-8"
+
+# Find mosh-udp-relay next to this script, following the stow symlink chain
+# (~/.local/bin/mosh-vpn -> the repo), then fall back to PATH.
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+    self_dir=$(cd -P "$(dirname "$self")" && pwd)
+    self=$(readlink "$self")
+    case "$self" in /*) ;; *) self="$self_dir/$self" ;; esac
+done
+RELAY="$(cd -P "$(dirname "$self")" && pwd)/mosh-udp-relay"
+[ -x "$RELAY" ] || RELAY=$(command -v mosh-udp-relay)
+if [ ! -x "$RELAY" ]; then
+    echo "mosh-vpn: mosh-udp-relay not found (stow the dotfiles repo?)." >&2
+    exit 1
+fi
+
+# Fresh, isolated SSH for the bootstrap:
+#  - ControlMaster=no / ControlPath=none : never reuse a persistent master,
+#    which goes stale when the VPN roams and yields "broken pipe".
+#  - ClearAllForwardings=yes : don't inherit the config's LocalForward entries,
+#    which collide ("address already in use") with a lingering session.
+SSH_OPTS=(-o ProxyCommand=none -o ConnectTimeout=15
+          -o ControlMaster=no -o ControlPath=none -o ClearAllForwardings=yes)
+
+# Remote: report both ends of the path -- the IP we dialed (which is where UDP
+# must be sent) and the source the server will reply from -- then start
+# mosh-server in the same session, so the detection matches the live route.
+remote_script='
+client_ip=${SSH_CONNECTION%% *}
+echo "DIALED_IP=$(echo "$SSH_CONNECTION" | awk "{print \$3}")"
+iface=$(route -n get "$client_ip" 2>/dev/null | awk "/interface:/ {print \$2}")
+echo "RESPOND_IP=$(ifconfig "$iface" 2>/dev/null | awk "/inet /{print \$2; exit}")"
+'"$SERVER_CMD"
+
+output=$(ssh "${SSH_OPTS[@]}" "$HOST" "$remote_script" 2>/dev/null)
+dialed_ip=$(echo "$output" | sed -n 's/^DIALED_IP=//p')
+respond_ip=$(echo "$output" | sed -n 's/^RESPOND_IP=//p')
+connect_line=$(echo "$output" | grep "MOSH CONNECT")
+port=$(echo "$connect_line" | awk '{print $3}')
+key=$(echo "$connect_line" | awk '{print $4}')
+
+if [ -z "$key" ] || [ -z "$port" ] || [ -z "$dialed_ip" ]; then
+    echo "mosh-vpn: failed to start mosh-server or detect the dialed IP." >&2
+    echo "$output" >&2
+    exit 1
+fi
+
+# Background port-forward for whatever this host's ssh config asks to forward.
+# mosh can't forward ports (terminal only), so this rides a separate SSH
+# connection. autossh -f daemonizes it and keeps it alive across roaming; it
+# persists in the background, independent of the mosh session. It relies on the
+# config's own "LocalForward" entries -- do NOT add ClearAllForwardings here (it
+# would also wipe those) or an explicit -L (duplicate bind). ControlMaster=no
+# makes autossh open its own connection rather than reuse a stale master.
+# Per-host, so several hosts can each keep their own forwards.
+# Stop one later with:  pkill -f "autossh.* $HOST\$"
+#
+# ssh -G prints "localforward <bind:port> <[host]:port>"; take the local port,
+# tolerating both "8791" and "[127.0.0.1]:8791" spellings of field 2.
+local_ports=$(ssh -G "$HOST" 2>/dev/null |
+              awk '/^localforward /{p=$2; sub(/.*:/, "", p); gsub(/[][]/, "", p); print p}')
+
+if [ -z "$local_ports" ]; then
+    echo "mosh-vpn: no LocalForward configured for $HOST; skipping forwards." >&2
+else
+    unbound=""
+    for p in $local_ports; do
+        lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1 || unbound="$unbound $p"
+    done
+
+    if [ -z "$unbound" ]; then
+        echo "mosh-vpn: local port(s)$(printf ' %s' $local_ports) already" \
+             "forwarded; leaving them." >&2
+    else
+        # Clear any stuck/stale forwarder for THIS host that's running but not
+        # bound (otherwise each reconnect piles up another autossh instead of
+        # fixing the forward). Anchored on the host so other hosts' forwarders
+        # survive.
+        pkill -f "autossh.* $HOST\$" 2>/dev/null && sleep 1
+        if AUTOSSH_GATETIME=0 autossh -M 0 -f -N \
+            -o ProxyCommand=none -o ControlMaster=no -o ControlPath=none \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            -o ExitOnForwardFailure=yes -o ConnectTimeout=15 "$HOST"; then
+            echo "mosh-vpn: forwarding local port(s)$unbound -> $HOST" \
+                 "(background)" >&2
+        else
+            echo "mosh-vpn: port-forward failed to start ($unbound)." \
+                 "Another host may already hold those ports." >&2
+        fi
+    fi
+fi
+
+# Symmetric path (server replies from the address we dialed): no relay needed.
+if [ "$respond_ip" = "$dialed_ip" ]; then
+    echo "mosh-vpn: symmetric route; connecting to $dialed_ip:$port" >&2
+    exec env MOSH_KEY="$key" mosh-client "$dialed_ip" "$port"
+fi
+
+# Asymmetric path: relay on loopback so mosh-client sees one stable peer.
+# Safe to run many sessions at once: the relay takes an ephemeral loopback port
+# and an ephemeral outward port, so concurrent instances never collide, and each
+# one dies with its own session. Strays, if ever: pkill -f mosh-udp-relay
+relay_log=$(mktemp -t mosh-vpn-relay)
+"$RELAY" "$dialed_ip" "$port" >"$relay_log" 2>&1 &
+relay_pid=$!
+
+listen_port=""
+for _ in $(seq 50); do
+    listen_port=$(sed -n 's/^LISTEN_PORT=//p' "$relay_log")
+    [ -n "$listen_port" ] && break
+    kill -0 "$relay_pid" 2>/dev/null || break
+    sleep 0.1
+done
+
+if [ -z "$listen_port" ]; then
+    echo "mosh-vpn: UDP relay failed to start." >&2
+    cat "$relay_log" >&2
+    kill "$relay_pid" 2>/dev/null
+    rm -f "$relay_log"
+    exit 1
+fi
+rm -f "$relay_log"
+
+echo "mosh-vpn: relaying 127.0.0.1:$listen_port -> $dialed_ip:$port" \
+     "(server replies from ${respond_ip:-another address})" >&2
+
+# exec keeps this PID, so the relay's parent-process watchdog sees the session
+# end and exits on its own -- nothing is left behind if mosh-client dies hard.
+exec env MOSH_KEY="$key" mosh-client 127.0.0.1 "$listen_port"
